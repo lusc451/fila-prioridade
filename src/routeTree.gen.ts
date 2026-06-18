@@ -10,11 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
+import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,30 +29,48 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppFilaIndexRoute = AppFilaIndexRouteImport.update({
+  id: '/fila/',
+  path: '/fila/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFilaNovoRoute = AppFilaNovoRouteImport.update({
+  id: '/fila/novo',
+  path: '/fila/novo',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/fila/novo': typeof AppFilaNovoRoute
+  '/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/fila/novo': typeof AppFilaNovoRoute
+  '/fila': typeof AppFilaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/fila/novo': typeof AppFilaNovoRoute
+  '/_app/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login'
+  fullPaths: '/' | '/login' | '/fila/novo' | '/fila/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login'
-  id: '__root__' | '/' | '/login'
+  to: '/' | '/login' | '/fila/novo' | '/fila'
+  id: '__root__' | '/' | '/_app' | '/login' | '/_app/fila/novo' | '/_app/fila/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
 
@@ -58,6 +83,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -65,11 +97,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/fila/': {
+      id: '/_app/fila/'
+      path: '/fila'
+      fullPath: '/fila/'
+      preLoaderRoute: typeof AppFilaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/fila/novo': {
+      id: '/_app/fila/novo'
+      path: '/fila/novo'
+      fullPath: '/fila/novo'
+      preLoaderRoute: typeof AppFilaNovoRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppFilaNovoRoute: typeof AppFilaNovoRoute
+  AppFilaIndexRoute: typeof AppFilaIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppFilaNovoRoute: AppFilaNovoRoute,
+  AppFilaIndexRoute: AppFilaIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
