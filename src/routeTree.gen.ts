@@ -9,38 +9,137 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppProfissionaisRouteImport } from './routes/_app.profissionais'
+import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
+import { Route as AppHistoricoRouteImport } from './routes/_app.historico'
+import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
+import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppProfissionaisRoute = AppProfissionaisRouteImport.update({
+  id: '/profissionais',
+  path: '/profissionais',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPacientesRoute = AppPacientesRouteImport.update({
+  id: '/pacientes',
+  path: '/pacientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoricoRoute = AppHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFilaIndexRoute = AppFilaIndexRouteImport.update({
+  id: '/fila/',
+  path: '/fila/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFilaNovoRoute = AppFilaNovoRouteImport.update({
+  id: '/fila/novo',
+  path: '/fila/novo',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/historico': typeof AppHistoricoRoute
+  '/pacientes': typeof AppPacientesRoute
+  '/profissionais': typeof AppProfissionaisRoute
+  '/fila/novo': typeof AppFilaNovoRoute
+  '/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/historico': typeof AppHistoricoRoute
+  '/pacientes': typeof AppPacientesRoute
+  '/profissionais': typeof AppProfissionaisRoute
+  '/fila/novo': typeof AppFilaNovoRoute
+  '/fila': typeof AppFilaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/historico': typeof AppHistoricoRoute
+  '/_app/pacientes': typeof AppPacientesRoute
+  '/_app/profissionais': typeof AppProfissionaisRoute
+  '/_app/fila/novo': typeof AppFilaNovoRoute
+  '/_app/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/historico'
+    | '/pacientes'
+    | '/profissionais'
+    | '/fila/novo'
+    | '/fila/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/historico'
+    | '/pacientes'
+    | '/profissionais'
+    | '/fila/novo'
+    | '/fila'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/historico'
+    | '/_app/pacientes'
+    | '/_app/profissionais'
+    | '/_app/fila/novo'
+    | '/_app/fila/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +147,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/profissionais': {
+      id: '/_app/profissionais'
+      path: '/profissionais'
+      fullPath: '/profissionais'
+      preLoaderRoute: typeof AppProfissionaisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pacientes': {
+      id: '/_app/pacientes'
+      path: '/pacientes'
+      fullPath: '/pacientes'
+      preLoaderRoute: typeof AppPacientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historico': {
+      id: '/_app/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof AppHistoricoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/fila/': {
+      id: '/_app/fila/'
+      path: '/fila'
+      fullPath: '/fila/'
+      preLoaderRoute: typeof AppFilaIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/fila/novo': {
+      id: '/_app/fila/novo'
+      path: '/fila/novo'
+      fullPath: '/fila/novo'
+      preLoaderRoute: typeof AppFilaNovoRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppHistoricoRoute: typeof AppHistoricoRoute
+  AppPacientesRoute: typeof AppPacientesRoute
+  AppProfissionaisRoute: typeof AppProfissionaisRoute
+  AppFilaNovoRoute: typeof AppFilaNovoRoute
+  AppFilaIndexRoute: typeof AppFilaIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppHistoricoRoute: AppHistoricoRoute,
+  AppPacientesRoute: AppPacientesRoute,
+  AppProfissionaisRoute: AppProfissionaisRoute,
+  AppFilaNovoRoute: AppFilaNovoRoute,
+  AppFilaIndexRoute: AppFilaIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
