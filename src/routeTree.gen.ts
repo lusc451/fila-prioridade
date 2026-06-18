@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppProfissionaisRouteImport } from './routes/_app.profissionais'
+import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
+import { Route as AppHistoricoRouteImport } from './routes/_app.historico'
 import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
 import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
 
@@ -29,6 +32,21 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppProfissionaisRoute = AppProfissionaisRouteImport.update({
+  id: '/profissionais',
+  path: '/profissionais',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPacientesRoute = AppPacientesRouteImport.update({
+  id: '/pacientes',
+  path: '/pacientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoricoRoute = AppHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFilaIndexRoute = AppFilaIndexRouteImport.update({
   id: '/fila/',
   path: '/fila/',
@@ -43,12 +61,18 @@ const AppFilaNovoRoute = AppFilaNovoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/historico': typeof AppHistoricoRoute
+  '/pacientes': typeof AppPacientesRoute
+  '/profissionais': typeof AppProfissionaisRoute
   '/fila/novo': typeof AppFilaNovoRoute
   '/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/historico': typeof AppHistoricoRoute
+  '/pacientes': typeof AppPacientesRoute
+  '/profissionais': typeof AppProfissionaisRoute
   '/fila/novo': typeof AppFilaNovoRoute
   '/fila': typeof AppFilaIndexRoute
 }
@@ -57,15 +81,41 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/_app/historico': typeof AppHistoricoRoute
+  '/_app/pacientes': typeof AppPacientesRoute
+  '/_app/profissionais': typeof AppProfissionaisRoute
   '/_app/fila/novo': typeof AppFilaNovoRoute
   '/_app/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/fila/novo' | '/fila/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/historico'
+    | '/pacientes'
+    | '/profissionais'
+    | '/fila/novo'
+    | '/fila/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/fila/novo' | '/fila'
-  id: '__root__' | '/' | '/_app' | '/login' | '/_app/fila/novo' | '/_app/fila/'
+  to:
+    | '/'
+    | '/login'
+    | '/historico'
+    | '/pacientes'
+    | '/profissionais'
+    | '/fila/novo'
+    | '/fila'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/historico'
+    | '/_app/pacientes'
+    | '/_app/profissionais'
+    | '/_app/fila/novo'
+    | '/_app/fila/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,6 +147,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/profissionais': {
+      id: '/_app/profissionais'
+      path: '/profissionais'
+      fullPath: '/profissionais'
+      preLoaderRoute: typeof AppProfissionaisRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pacientes': {
+      id: '/_app/pacientes'
+      path: '/pacientes'
+      fullPath: '/pacientes'
+      preLoaderRoute: typeof AppPacientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historico': {
+      id: '/_app/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof AppHistoricoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/fila/': {
       id: '/_app/fila/'
       path: '/fila'
@@ -115,11 +186,17 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppHistoricoRoute: typeof AppHistoricoRoute
+  AppPacientesRoute: typeof AppPacientesRoute
+  AppProfissionaisRoute: typeof AppProfissionaisRoute
   AppFilaNovoRoute: typeof AppFilaNovoRoute
   AppFilaIndexRoute: typeof AppFilaIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppHistoricoRoute: AppHistoricoRoute,
+  AppPacientesRoute: AppPacientesRoute,
+  AppProfissionaisRoute: AppProfissionaisRoute,
   AppFilaNovoRoute: AppFilaNovoRoute,
   AppFilaIndexRoute: AppFilaIndexRoute,
 }
