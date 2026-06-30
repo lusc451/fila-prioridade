@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { ArrowLeft, UserPlus, Save, FileEdit } from "lucide-react";
+import { ArrowLeft, UserPlus, Save } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PRIORITY_META, PRIORITY_ORDER, type Priority } from "@/lib/types";
 import { formatDateBR } from "@/lib/format";
