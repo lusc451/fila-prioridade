@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Stethoscope, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar — TriaFila" }] }),
@@ -13,25 +15,51 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState("");
+  const { user, loading: authLoading } = useAuth();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
-  const [remember, setRemember] = useState(true);
-  const [errors, setErrors] = useState<{ user?: string; pass?: string; auth?: string }>({});
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; pass?: string; name?: string; auth?: string }>({});
 
-  function submit(e: FormEvent) {
+  useEffect(() => {
+    if (!authLoading && user) navigate({ to: "/fila" });
+  }, [user, authLoading, navigate]);
+
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const err: typeof errors = {};
-    if (!user.trim()) err.user = "Informe seu e-mail ou usuário.";
-    if (!pass) err.pass = "Informe sua senha.";
-    if (Object.keys(err).length) return setErrors(err);
+    if (!email.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) err.email = "Informe um e-mail válido.";
+    if (!pass || pass.length < 6) err.pass = "A senha deve ter ao menos 6 caracteres.";
+    if (mode === "signup" && !name.trim()) err.name = "Informe seu nome completo.";
+    setErrors(err);
+    if (Object.keys(err).length) return;
 
-    // Demo: aceita qualquer credencial com senha >= 4
-    if (pass.length < 4) {
-      setErrors({ auth: "Credenciais inválidas. Tente novamente." });
-      return;
+    setBusy(true);
+    try {
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: pass });
+        if (error) throw error;
+        toast.success("Bem-vindo de volta!");
+        navigate({ to: "/fila" });
+      } else {
+        const redirectUrl = `${window.location.origin}/fila`;
+        const { error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: pass,
+          options: { emailRedirectTo: redirectUrl, data: { nome_completo: name.trim() } },
+        });
+        if (error) throw error;
+        toast.success("Conta criada! Você já pode entrar.");
+        setMode("signin");
+      }
+    } catch (e: any) {
+      const msg = e?.message ?? "Erro ao autenticar.";
+      setErrors({ auth: msg.includes("Invalid login") ? "E-mail ou senha incorretos." : msg });
+    } finally {
+      setBusy(false);
     }
-    localStorage.setItem("tfila_auth", JSON.stringify({ user, remember }));
-    navigate({ to: "/fila" });
   }
 
   return (
@@ -60,8 +88,10 @@ function LoginPage() {
           </div>
 
           <div>
-            <h2 className="text-2xl font-bold">Acessar o sistema</h2>
-            <p className="text-sm text-muted-foreground mt-1">Use suas credenciais administrativas para continuar.</p>
+            <h2 className="text-2xl font-bold">{mode === "signin" ? "Acessar o sistema" : "Criar conta"}</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {mode === "signin" ? "Use suas credenciais administrativas para continuar." : "O primeiro usuário criado recebe permissões de administrador."}
+            </p>
           </div>
 
           {errors.auth && (
@@ -70,37 +100,42 @@ function LoginPage() {
             </div>
           )}
 
+          {mode === "signup" && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome completo</Label>
+              <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} aria-invalid={!!errors.name} />
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="user">E-mail ou usuário</Label>
+            <Label htmlFor="email">E-mail</Label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="user" autoComplete="username" className="pl-9" value={user} onChange={(e) => setUser(e.target.value)} aria-invalid={!!errors.user} />
+              <Input id="email" type="email" autoComplete="email" className="pl-9" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={!!errors.email} />
             </div>
-            {errors.user && <p className="text-xs text-destructive">{errors.user}</p>}
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="pass">Senha</Label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input id="pass" type="password" autoComplete="current-password" className="pl-9" value={pass} onChange={(e) => setPass(e.target.value)} aria-invalid={!!errors.pass} />
+              <Input id="pass" type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} className="pl-9" value={pass} onChange={(e) => setPass(e.target.value)} aria-invalid={!!errors.pass} />
             </div>
             {errors.pass && <p className="text-xs text-destructive">{errors.pass}</p>}
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={remember} onCheckedChange={(v) => setRemember(!!v)} />
-              Lembrar-me
-            </label>
-            <button type="button" className="text-sm text-primary hover:underline" onClick={() => alert("Um link de recuperação seria enviado ao seu e-mail.")}>
-              Esqueci minha senha
+          <Button type="submit" className="w-full" disabled={busy}>
+            {busy ? "Aguarde..." : mode === "signin" ? "Entrar" : "Criar conta"}
+          </Button>
+
+          <p className="text-sm text-center text-muted-foreground">
+            {mode === "signin" ? "Não tem conta?" : "Já tem conta?"}{" "}
+            <button type="button" className="text-primary hover:underline font-medium" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setErrors({}); }}>
+              {mode === "signin" ? "Criar uma" : "Entrar"}
             </button>
-          </div>
-
-          <Button type="submit" className="w-full">Entrar</Button>
-
-          <p className="text-xs text-muted-foreground text-center">Demonstração: qualquer e-mail e senha com 4+ caracteres.</p>
+          </p>
         </form>
       </div>
     </div>

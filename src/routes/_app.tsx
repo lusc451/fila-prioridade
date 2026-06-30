@@ -16,6 +16,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { useAuth, signOut } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app")({
   component: AppLayout,
@@ -31,14 +32,15 @@ const NAV = [
 function AppLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!localStorage.getItem("tfila_auth")) navigate({ to: "/login" });
-  }, [navigate]);
+    if (loading) return;
+    if (!user) navigate({ to: "/login" });
+  }, [user, loading, navigate]);
 
-  function logout() {
-    localStorage.removeItem("tfila_auth");
+  async function logout() {
+    await signOut();
     navigate({ to: "/login" });
   }
 

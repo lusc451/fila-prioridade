@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, CheckCircle2, Phone, Calendar, ArrowUpDown } from "lucide-react";
+import { Search, Plus, Eye, Pencil, Trash2, CheckCircle2, XCircle, Phone, Calendar, ArrowUpDown } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PRIORITY_META, PRIORITY_ORDER, type Priority } from "@/lib/types";
 import { formatDateBR, formatDateTimeBR, ageFromBirth } from "@/lib/format";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_app/fila/")({
 type SortKey = "priority" | "createdAt" | "lastAppointmentDate";
 
 function QueuePage() {
-  const { queue, patients, professionals, removeQueueEntry, completeQueueEntry, setPriority } = useStore();
+  const { queue, patients, professionals, removeQueueEntry, completeQueueEntry, cancelQueueEntry, setPriority } = useStore();
   const [q, setQ] = useState("");
   const [fPriority, setFPriority] = useState<string>("all");
   const [fProf, setFProf] = useState<string>("all");
@@ -243,6 +243,21 @@ function QueuePage() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                                 <AlertDialogAction onClick={() => { completeQueueEntry(e.id); toast.success("Atendimento concluído."); }}>Concluir</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="icon" variant="ghost" aria-label="Cancelar"><XCircle className="h-4 w-4 text-orange-600" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Cancelar atendimento?</AlertDialogTitle>
+                                <AlertDialogDescription>O atendimento sairá da fila ativa e ficará registrado como cancelado no histórico.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => { cancelQueueEntry(e.id); toast.success("Atendimento cancelado."); }}>Cancelar atendimento</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>

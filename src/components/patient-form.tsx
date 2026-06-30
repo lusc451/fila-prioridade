@@ -24,7 +24,7 @@ export default function PatientForm({ patient, onSaved, onCancel, onDelete }: Pr
 
   const today = new Date().toISOString().slice(0, 10);
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const err: Record<string, string> = {};
     if (!name.trim()) err.name = "Nome completo é obrigatório.";
@@ -35,13 +35,15 @@ export default function PatientForm({ patient, onSaved, onCancel, onDelete }: Pr
     setErrors(err);
     if (Object.keys(err).length) return;
 
-    if (patient) {
-      updatePatient(patient.id, { name: name.trim(), birthDate, phone, notes: notes.trim() || undefined });
-      onSaved({ ...patient, name: name.trim(), birthDate, phone, notes: notes.trim() || undefined });
-    } else {
-      const np = addPatient({ name: name.trim(), birthDate, phone, notes: notes.trim() || undefined });
-      onSaved(np);
-    }
+    try {
+      if (patient) {
+        await updatePatient(patient.id, { name: name.trim(), birthDate, phone, notes: notes.trim() || undefined });
+        onSaved({ ...patient, name: name.trim(), birthDate, phone, notes: notes.trim() || undefined });
+      } else {
+        const np = await addPatient({ name: name.trim(), birthDate, phone, notes: notes.trim() || undefined });
+        onSaved(np);
+      }
+    } catch { /* toast shown */ }
   }
 
   return (
