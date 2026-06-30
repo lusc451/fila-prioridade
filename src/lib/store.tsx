@@ -169,7 +169,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         paciente_id: q.patientId,
         profissional_id: q.professionalId,
         prioridade: priorityToDb(q.priority),
-        tipo: q.firstAppointment ? "primeira" : "retorno",
+        tipo: (q.firstAppointment ? "primeira" : "retorno") as "primeira" | "retorno",
         data_ultima_consulta: q.firstAppointment ? null : q.lastAppointmentDate ?? null,
         observacoes: q.notes ?? null,
         status: statusToDb(q.status ?? "ativo"),

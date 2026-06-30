@@ -63,8 +63,8 @@ function AddToQueuePage() {
     return Object.keys(e).length === 0;
   }
 
-  function save(asDraft: boolean) {
-    if (!validate(asDraft)) {
+  async function save() {
+    if (!validate(false)) {
       toast.error("Verifique os campos destacados.");
       return;
     }
@@ -74,17 +74,19 @@ function AddToQueuePage() {
       firstAppointment: firstAppt === "yes",
       lastAppointmentDate: firstAppt === "yes" ? undefined : lastDate,
       notes: notes.trim() || undefined,
-      priority: (priority || "retorno_rotina") as Priority,
-      status: asDraft ? ("rascunho" as const) : ("ativo" as const),
+      priority: priority as Priority,
+      status: "ativo" as const,
     };
-    if (editing) {
-      updateQueueEntry(editing.id, payload);
-      toast.success("Atendimento atualizado.");
-    } else {
-      addQueueEntry(payload);
-      toast.success(asDraft ? "Rascunho salvo." : "Adicionado à fila.");
-    }
-    navigate({ to: "/fila" });
+    try {
+      if (editing) {
+        await updateQueueEntry(editing.id, payload);
+        toast.success("Atendimento atualizado.");
+      } else {
+        await addQueueEntry(payload);
+        toast.success("Adicionado à fila.");
+      }
+      navigate({ to: "/fila" });
+    } catch { /* toast shown */ }
   }
 
   return (
@@ -216,8 +218,7 @@ function AddToQueuePage() {
 
       <div className="flex flex-wrap gap-2 justify-end">
         <Button variant="ghost" asChild><Link to="/fila">Cancelar</Link></Button>
-        <Button variant="outline" onClick={() => save(true)}><FileEdit className="h-4 w-4" />Salvar rascunho</Button>
-        <Button onClick={() => save(false)}><Save className="h-4 w-4" />{editing ? "Salvar alterações" : "Adicionar à fila"}</Button>
+        <Button onClick={save}><Save className="h-4 w-4" />{editing ? "Salvar alterações" : "Adicionar à fila"}</Button>
       </div>
 
       <Dialog open={newPatientOpen} onOpenChange={setNewPatientOpen}>

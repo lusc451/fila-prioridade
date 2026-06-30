@@ -22,7 +22,7 @@ export default function ProfessionalForm({ professional, onSaved, onCancel, onDe
   const [active, setActive] = useState(professional?.active ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
     const err: Record<string, string> = {};
     if (!name.trim()) err.name = "Nome é obrigatório.";
@@ -30,13 +30,15 @@ export default function ProfessionalForm({ professional, onSaved, onCancel, onDe
     setErrors(err);
     if (Object.keys(err).length) return;
 
-    if (professional) {
-      updateProfessional(professional.id, { name: name.trim(), specialty: specialty.trim(), contact: contact.trim() || undefined, active });
-      onSaved({ ...professional, name: name.trim(), specialty: specialty.trim(), contact: contact.trim() || undefined, active });
-    } else {
-      const np = addProfessional({ name: name.trim(), specialty: specialty.trim(), contact: contact.trim() || undefined, active });
-      onSaved(np);
-    }
+    try {
+      if (professional) {
+        await updateProfessional(professional.id, { name: name.trim(), specialty: specialty.trim(), contact: contact.trim() || undefined, active });
+        onSaved({ ...professional, name: name.trim(), specialty: specialty.trim(), contact: contact.trim() || undefined, active });
+      } else {
+        const np = await addProfessional({ name: name.trim(), specialty: specialty.trim(), contact: contact.trim() || undefined, active });
+        onSaved(np);
+      }
+    } catch { /* toast shown */ }
   }
 
   return (
