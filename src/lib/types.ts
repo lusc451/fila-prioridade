@@ -56,12 +56,13 @@ export interface Patient {
 export interface Professional {
   id: string;
   name: string;
-  specialty: string;
+  specialty: string; // nome da especialidade
+  specialtyId?: string;
   contact?: string;
   active: boolean;
 }
 
-export type QueueStatus = "ativo" | "concluido" | "rascunho";
+export type QueueStatus = "ativo" | "concluido" | "cancelado";
 
 export interface QueueEntry {
   id: string;
@@ -75,3 +76,25 @@ export interface QueueEntry {
   status: QueueStatus;
   completedAt?: string;
 }
+
+// ===== DB <-> UI mappers =====
+export type DbPriority = "urgencia" | "prioridade_exame" | "prioridade_retorno" | "rotina_retorno";
+export type DbStatus = "aguardando" | "concluido" | "cancelado";
+
+export const priorityToDb = (p: Priority): DbPriority =>
+  p === "urgencia" ? "urgencia"
+  : p === "exame" ? "prioridade_exame"
+  : p === "retorno_prioritario" ? "prioridade_retorno"
+  : "rotina_retorno";
+
+export const priorityFromDb = (p: DbPriority): Priority =>
+  p === "urgencia" ? "urgencia"
+  : p === "prioridade_exame" ? "exame"
+  : p === "prioridade_retorno" ? "retorno_prioritario"
+  : "retorno_rotina";
+
+export const statusToDb = (s: QueueStatus): DbStatus =>
+  s === "ativo" ? "aguardando" : s;
+
+export const statusFromDb = (s: DbStatus): QueueStatus =>
+  s === "aguardando" ? "ativo" : s;
