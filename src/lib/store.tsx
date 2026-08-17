@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useAuth } from "./auth";
 import {
   type Patient, type Professional, type QueueEntry, type Priority, type QueueStatus,
@@ -9,6 +10,18 @@ import {
 import { toast } from "sonner";
 
 interface Specialty { id: string; name: string }
+
+type PatientUpdate = Database["public"]["Tables"]["pacientes"]["Update"];
+type ProfessionalUpdate = Database["public"]["Tables"]["profissionais"]["Update"];
+type QueueUpdate = Database["public"]["Tables"]["fila"]["Update"];
+
+type ProfessionalWithSpecialty =
+  Database["public"]["Tables"]["profissionais"]["Row"] & {
+    especialidade: {
+      id: string;
+      nome: string;
+    } | null;
+  };
 
 interface Store {
   ready: boolean;
@@ -65,7 +78,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       id: r.id, name: r.nome, birthDate: r.data_nascimento, phone: r.telefone,
     })));
     setSpecialties(espRes.data.map((r) => ({ id: r.id, name: r.nome })));
-    setProfessionals(profRes.data.map((r: any) => ({
+    const professionalRows = profRes.data as ProfessionalWithSpecialty[];
+    setProfessionals(professionalRows.map((r) => ({
       id: r.id, name: r.nome,
       specialty: r.especialidade?.nome ?? "",
       specialtyId: r.especialidade_id,
@@ -116,7 +130,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return np;
     },
     async updatePatient(id, p) {
-      const patch: any = {};
+      const patch: PatientUpdate = {};
       if (p.name !== undefined) patch.nome = p.name;
       if (p.birthDate !== undefined) patch.data_nascimento = p.birthDate;
       if (p.phone !== undefined) patch.telefone = p.phone;
@@ -136,16 +150,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         nome: p.name, especialidade_id: specialtyId, ativo: p.active,
       }).select("*, especialidade:especialidades(id,nome)").single();
       if (error) { err("Falha ao cadastrar profissional", error); return null as never; }
+      const professionalData = data as ProfessionalWithSpecialty;
       const np: Professional = {
-        id: data.id, name: data.nome,
-        specialty: (data as any).especialidade?.nome ?? p.specialty,
-        specialtyId: data.especialidade_id, active: data.ativo,
+        id: professionalData.id, name: professionalData.nome,
+        specialty: professionalData.especialidade?.nome ?? p.specialty,
+        specialtyId: professionalData.especialidade_id, active: professionalData.ativo,
       };
       setProfessionals((s) => [...s, np].sort((a, b) => a.name.localeCompare(b.name)));
       return np;
     },
     async updateProfessional(id, p) {
-      const patch: any = {};
+      const patch: ProfessionalUpdate = {};
       if (p.name !== undefined) patch.nome = p.name;
       if (p.active !== undefined) patch.ativo = p.active;
       if (p.specialty !== undefined) patch.especialidade_id = p.specialtyId ?? await ensureSpecialty(p.specialty);
@@ -192,7 +207,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return nq;
     },
     async updateQueueEntry(id, q) {
-      const patch: any = {};
+      const patch: QueueUpdate = {};
       if (q.patientId !== undefined) patch.paciente_id = q.patientId;
       if (q.professionalId !== undefined) patch.profissional_id = q.professionalId;
       if (q.priority !== undefined) patch.prioridade = priorityToDb(q.priority);

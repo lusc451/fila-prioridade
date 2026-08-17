@@ -54,8 +54,8 @@ function LoginPage() {
         toast.success("Conta criada! Você já pode entrar.");
         setMode("signin");
       }
-    } catch (e: any) {
-      const msg = e?.message ?? "Erro ao autenticar.";
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro ao autenticar.";
       setErrors({ auth: msg.includes("Invalid login") ? "E-mail ou senha incorretos." : msg });
     } finally {
       setBusy(false);
