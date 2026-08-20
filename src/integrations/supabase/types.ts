@@ -167,24 +167,33 @@ export type Database = {
       profiles: {
         Row: {
           ativo: boolean
+          cargo: Database["public"]["Enums"]["cargo_usuario"] | null
           created_at: string
           id: string
+          must_change_password: boolean
           nome_completo: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           ativo?: boolean
+          cargo?: Database["public"]["Enums"]["cargo_usuario"] | null
           created_at?: string
           id: string
+          must_change_password?: boolean
           nome_completo: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           ativo?: boolean
+          cargo?: Database["public"]["Enums"]["cargo_usuario"] | null
           created_at?: string
           id?: string
+          must_change_password?: boolean
           nome_completo?: string
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -252,16 +261,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
+      current_user_can_use_app: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      current_user_has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
         }
+        Returns: boolean
+      }
+      current_user_is_active: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      current_user_is_privileged: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
     }
     Enums: {
-      app_role: "admin" | "usuario"
+      app_role: "admin" | "usuario" | "developer"
+      cargo_usuario: "enfermeiro" | "tecnico_enfermagem" | "recepcao"
       prioridade_atendimento:
         | "urgencia"
         | "prioridade_exame"
@@ -396,7 +417,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "usuario"],
+      app_role: ["admin", "usuario", "developer"],
+      cargo_usuario: ["enfermeiro", "tecnico_enfermagem", "recepcao"],
       prioridade_atendimento: [
         "urgencia",
         "prioridade_exame",
