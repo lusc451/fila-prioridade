@@ -27,7 +27,6 @@ export const Route = createFileRoute('/api/complete-password-change')({
         try {
           const SUPABASE_URL = process.env['SUPABASE_URL']!
           const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY']!
-          const SUPABASE_SERVICE_ROLE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY']!
 
           // 1. Validar presença do JWT
           const authHeader = request.headers.get('Authorization') ?? ''
@@ -99,7 +98,6 @@ export const Route = createFileRoute('/api/complete-password-change')({
           // 6. Só após o sucesso: must_change_password = false (credencial
           //    administrativa usada exclusivamente server-side, nunca exposta).
           const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
-          void SUPABASE_SERVICE_ROLE_KEY // exigido pelo cliente admin server-side
           const { error: flagError } = await supabaseAdmin
             .from('profiles')
             .update({ must_change_password: false })
