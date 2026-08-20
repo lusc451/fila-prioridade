@@ -261,24 +261,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_user_can_use_app: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      current_user_can_use_app: { Args: never; Returns: boolean }
       current_user_has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-        }
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
-      current_user_is_active: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      current_user_is_privileged: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      current_user_is_active: { Args: never; Returns: boolean }
+      current_user_is_privileged: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "usuario" | "developer"
