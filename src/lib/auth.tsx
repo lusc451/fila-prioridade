@@ -300,13 +300,13 @@ export function AuthProvider({
               "updated_at",
             ].join(","),
           )
-          .eq("id", userId)
+          .eq("id", userId!)
           .maybeSingle(),
 
         supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", userId)
+          .eq("user_id", userId!)
           .maybeSingle(),
       ]);
 
@@ -328,7 +328,7 @@ export function AuthProvider({
 
       if (roleResult.error) {
         setProfile(
-          profileResult.data as AuthProfile | null,
+          profileResult.data as unknown as AuthProfile | null,
         );
 
         setRole(null);
@@ -366,7 +366,7 @@ export function AuthProvider({
 
       if (!roleResult.data) {
         setProfile(
-          profileResult.data as AuthProfile,
+          profileResult.data as unknown as AuthProfile,
         );
 
         setRole(null);
@@ -380,7 +380,7 @@ export function AuthProvider({
       }
 
       setProfile(
-        profileResult.data as AuthProfile,
+        profileResult.data as unknown as AuthProfile,
       );
 
       setRole(roleResult.data.role);
