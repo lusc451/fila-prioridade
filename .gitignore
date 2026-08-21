@@ -33,3 +33,8 @@ dist-ssr
 
 *.env
 .env
+
+
+# O .env contÃ©m exclusivamente configuraÃ§Ãµes pÃºblicas VITE_* usadas
+# pelo build remoto do Lovable.
+!.env
