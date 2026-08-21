@@ -1,37 +1,17 @@
-import {
-  Link,
-  createFileRoute,
-  useNavigate,
-} from "@tanstack/react-router";
-import {
-  ArrowLeft,
-  KeyRound,
-  Lock,
-  Stethoscope,
-} from "lucide-react";
-import {
-  useEffect,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, KeyRound, Lock, Stethoscope } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  signOut,
-  useAuth,
-} from "@/lib/auth";
+import { signOut, useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
-export const Route = createFileRoute(
-  "/alterar-senha",
-)({
+export const Route = createFileRoute("/alterar-senha")({
   head: () => ({
     meta: [
       {
-        title:
-          "Alterar senha temporária — TriaFila",
+        title: "Alterar senha temporária — TriaFila",
       },
     ],
   }),
@@ -58,28 +38,18 @@ type PasswordChangeResponse =
  * Verifica se o JSON retornado pelo backend possui o
  * formato esperado.
  */
-function isPasswordChangeResponse(
-  value: unknown,
-): value is PasswordChangeResponse {
-  if (
-    typeof value !== "object" ||
-    value === null ||
-    Array.isArray(value)
-  ) {
+function isPasswordChangeResponse(value: unknown): value is PasswordChangeResponse {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
   }
 
-  const record =
-    value as Record<string, unknown>;
+  const record = value as Record<string, unknown>;
 
   if (record.success === true) {
     return true;
   }
 
-  return (
-    record.success === false &&
-    typeof record.error === "string"
-  );
+  return record.success === false && typeof record.error === "string";
 }
 
 /**
@@ -89,10 +59,7 @@ function isPasswordChangeResponse(
  * Portanto, estas regras melhoram a experiência do usuário,
  * mas não constituem a barreira de segurança definitiva.
  */
-function validateNewPassword(
-  currentPassword: string,
-  newPassword: string,
-): string | null {
+function validateNewPassword(currentPassword: string, newPassword: string): string | null {
   if (newPassword.length < 6) {
     return "A nova senha deve ter no mínimo 6 caracteres.";
   }
@@ -115,35 +82,17 @@ function validateNewPassword(
 function AlterarSenhaPage() {
   const navigate = useNavigate();
 
-  const {
-    session,
-    user,
-    profile,
-    isActive,
-    loading,
-    accountError,
-  } = useAuth();
+  const { session, user, profile, isActive, loading, accountError } = useAuth();
 
-  const [
-    currentPassword,
-    setCurrentPassword,
-  ] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
 
-  const [
-    newPassword,
-    setNewPassword,
-  ] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
-  const [
-    confirmation,
-    setConfirmation,
-  ] = useState("");
+  const [confirmation, setConfirmation] = useState("");
 
-  const [busy, setBusy] =
-    useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const [errors, setErrors] =
-    useState<PasswordChangeErrors>({});
+  const [errors, setErrors] = useState<PasswordChangeErrors>({});
 
   /**
    * Esta é uma rota autenticada.
@@ -172,96 +121,64 @@ function AlterarSenhaPage() {
    * alteração voluntária de senha.
    */
   useEffect(() => {
-    if (
-      loading ||
-      !user ||
-      !profile ||
-      accountError ||
-      isActive !== true
-    ) {
+    if (loading || !user || !profile || accountError || isActive !== true) {
       return;
     }
 
-    if (
-      profile.must_change_password !== true
-    ) {
+    if (profile.must_change_password !== true) {
       navigate({
         to: "/fila",
         replace: true,
       });
     }
-  }, [
-    loading,
-    user,
-    profile,
-    accountError,
-    isActive,
-    navigate,
-  ]);
+  }, [loading, user, profile, accountError, isActive, navigate]);
 
-  async function submit(
-    e: FormEvent,
-  ) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
 
-    const validationErrors:
-      PasswordChangeErrors = {};
+    const validationErrors: PasswordChangeErrors = {};
 
     if (!currentPassword) {
-      validationErrors.currentPassword =
-        "Informe a senha temporária atual.";
+      validationErrors.currentPassword = "Informe a senha temporária atual.";
     }
 
     if (!newPassword) {
-      validationErrors.newPassword =
-        "Informe a nova senha.";
+      validationErrors.newPassword = "Informe a nova senha.";
     } else {
-      const passwordError =
-        validateNewPassword(
-          currentPassword,
-          newPassword,
-        );
+      const passwordError = validateNewPassword(currentPassword, newPassword);
 
       if (passwordError) {
-        validationErrors.newPassword =
-          passwordError;
+        validationErrors.newPassword = passwordError;
       }
     }
 
     if (!confirmation) {
-      validationErrors.confirmation =
-        "Confirme a nova senha.";
-    } else if (
-      newPassword !== confirmation
-    ) {
-      validationErrors.confirmation =
-        "As senhas informadas não coincidem.";
+      validationErrors.confirmation = "Confirme a nova senha.";
+    } else if (newPassword !== confirmation) {
+      validationErrors.confirmation = "As senhas informadas não coincidem.";
     }
 
-    if (!session?.access_token) {
-      validationErrors.request =
-        "Sua sessão não está disponível. Entre novamente no sistema.";
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      validationErrors.request = "Sua sessão não está disponível. Entre novamente no sistema.";
     }
 
-    if (
-      !profile ||
-      profile.must_change_password !== true
-    ) {
-      validationErrors.request =
-        "Não existe troca obrigatória de senha pendente para esta conta.";
+    if (!profile || profile.must_change_password !== true) {
+      validationErrors.request = "Não existe troca obrigatória de senha pendente para esta conta.";
     }
 
     if (isActive !== true) {
-      validationErrors.request =
-        "Esta conta não está habilitada para utilizar o sistema.";
+      validationErrors.request = "Esta conta não está habilitada para utilizar o sistema.";
     }
 
     setErrors(validationErrors);
 
-    if (
-      Object.keys(validationErrors)
-        .length > 0
-    ) {
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
+    if (!accessToken) {
       return;
     }
 
@@ -274,52 +191,33 @@ function AlterarSenhaPage() {
        * O backend identifica o usuário exclusivamente
        * através do access token presente em Authorization.
        */
-      const response = await fetch(
-        "/api/complete-password-change",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization:
-              `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            currentPassword,
-            newPassword,
-          }),
+      const response = await fetch("/api/complete-password-change", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
-      );
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
 
       let payload: unknown;
 
       try {
-        payload =
-          await response.json();
+        payload = await response.json();
       } catch {
-        throw new Error(
-          "O servidor retornou uma resposta inválida.",
-        );
+        throw new Error("O servidor retornou uma resposta inválida.");
       }
 
-      if (
-        !isPasswordChangeResponse(
-          payload,
-        )
-      ) {
-        throw new Error(
-          "O servidor retornou uma resposta inesperada.",
-        );
+      if (!isPasswordChangeResponse(payload)) {
+        throw new Error("O servidor retornou uma resposta inesperada.");
       }
 
-      if (
-        !response.ok ||
-        payload.success !== true
-      ) {
+      if (!response.ok || payload.success !== true) {
         const message =
-          payload.success === false
-            ? payload.error
-            : "Não foi possível alterar a senha.";
+          payload.success === false ? payload.error : "Não foi possível alterar a senha.";
 
         setErrors({
           request: message,
@@ -341,9 +239,7 @@ function AlterarSenhaPage() {
        */
       await signOut();
 
-      toast.success(
-        "Senha definida com sucesso. Entre novamente utilizando sua nova senha.",
-      );
+      toast.success("Senha definida com sucesso. Entre novamente utilizando sua nova senha.");
 
       navigate({
         to: "/login",
@@ -351,10 +247,7 @@ function AlterarSenhaPage() {
       });
     } catch (error: unknown) {
       setErrors({
-        request:
-          error instanceof Error
-            ? error.message
-            : "Não foi possível alterar a senha.",
+        request: error instanceof Error ? error.message : "Não foi possível alterar a senha.",
       });
     } finally {
       setBusy(false);
@@ -368,10 +261,7 @@ function AlterarSenhaPage() {
   if (loading) {
     return (
       <PasswordChangeShell>
-        <div
-          role="status"
-          className="rounded-md border bg-muted/40 px-4 py-3 text-sm"
-        >
+        <div role="status" className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
           Carregando informações da conta...
         </div>
       </PasswordChangeShell>
@@ -386,10 +276,7 @@ function AlterarSenhaPage() {
   if (!user || !session) {
     return (
       <PasswordChangeShell>
-        <div
-          role="status"
-          className="rounded-md border bg-muted/40 px-4 py-3 text-sm"
-        >
+        <div role="status" className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
           Redirecionando para o login...
         </div>
       </PasswordChangeShell>
@@ -472,10 +359,7 @@ function AlterarSenhaPage() {
   if (!profile) {
     return (
       <PasswordChangeShell>
-        <div
-          role="status"
-          className="rounded-md border bg-muted/40 px-4 py-3 text-sm"
-        >
+        <div role="status" className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
           Carregando perfil do usuário...
         </div>
       </PasswordChangeShell>
@@ -486,15 +370,10 @@ function AlterarSenhaPage() {
    * Caso must_change_password já seja false,
    * o useEffect redirecionará para /fila.
    */
-  if (
-    profile.must_change_password !== true
-  ) {
+  if (profile.must_change_password !== true) {
     return (
       <PasswordChangeShell>
-        <div
-          role="status"
-          className="rounded-md border bg-muted/40 px-4 py-3 text-sm"
-        >
+        <div role="status" className="rounded-md border bg-muted/40 px-4 py-3 text-sm">
           Redirecionando para o sistema...
         </div>
       </PasswordChangeShell>
@@ -503,18 +382,13 @@ function AlterarSenhaPage() {
 
   return (
     <PasswordChangeShell>
-      <form
-        onSubmit={submit}
-        className="space-y-6"
-        noValidate
-      >
+      <form onSubmit={submit} className="space-y-6" noValidate>
         <div>
-          <h2 className="text-2xl font-bold">
-            Defina sua senha
-          </h2>
+          <h2 className="text-2xl font-bold">Defina sua senha</h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Este é seu primeiro acesso ou sua senha foi redefinida por um administrador. Antes de utilizar o sistema, defina uma nova senha definitiva.
+            Este é seu primeiro acesso ou sua senha foi redefinida por um administrador. Antes de
+            utilizar o sistema, defina uma nova senha definitiva.
           </p>
         </div>
 
@@ -523,12 +397,11 @@ function AlterarSenhaPage() {
             <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
 
             <div className="space-y-1">
-              <p className="font-medium">
-                Requisitos da nova senha
-              </p>
+              <p className="font-medium">Requisitos da nova senha</p>
 
               <p className="text-muted-foreground">
-                Utilize pelo menos 6 caracteres, contendo no mínimo uma letra e um número. A nova senha deve ser diferente da senha temporária.
+                Utilize pelo menos 6 caracteres, contendo no mínimo uma letra e um número. A nova
+                senha deve ser diferente da senha temporária.
               </p>
             </div>
           </div>
@@ -544,9 +417,7 @@ function AlterarSenhaPage() {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="current-password">
-            Senha temporária atual
-          </Label>
+          <Label htmlFor="current-password">Senha temporária atual</Label>
 
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -557,29 +428,19 @@ function AlterarSenhaPage() {
               autoComplete="current-password"
               className="pl-9"
               value={currentPassword}
-              onChange={(e) =>
-                setCurrentPassword(
-                  e.target.value,
-                )
-              }
-              aria-invalid={
-                !!errors.currentPassword
-              }
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              aria-invalid={!!errors.currentPassword}
               disabled={busy}
             />
           </div>
 
           {errors.currentPassword && (
-            <p className="text-xs text-destructive">
-              {errors.currentPassword}
-            </p>
+            <p className="text-xs text-destructive">{errors.currentPassword}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="new-password">
-            Nova senha
-          </Label>
+          <Label htmlFor="new-password">Nova senha</Label>
 
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -590,29 +451,17 @@ function AlterarSenhaPage() {
               autoComplete="new-password"
               className="pl-9"
               value={newPassword}
-              onChange={(e) =>
-                setNewPassword(
-                  e.target.value,
-                )
-              }
-              aria-invalid={
-                !!errors.newPassword
-              }
+              onChange={(e) => setNewPassword(e.target.value)}
+              aria-invalid={!!errors.newPassword}
               disabled={busy}
             />
           </div>
 
-          {errors.newPassword && (
-            <p className="text-xs text-destructive">
-              {errors.newPassword}
-            </p>
-          )}
+          {errors.newPassword && <p className="text-xs text-destructive">{errors.newPassword}</p>}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirm-password">
-            Confirmar nova senha
-          </Label>
+          <Label htmlFor="confirm-password">Confirmar nova senha</Label>
 
           <div className="relative">
             <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -623,33 +472,17 @@ function AlterarSenhaPage() {
               autoComplete="new-password"
               className="pl-9"
               value={confirmation}
-              onChange={(e) =>
-                setConfirmation(
-                  e.target.value,
-                )
-              }
-              aria-invalid={
-                !!errors.confirmation
-              }
+              onChange={(e) => setConfirmation(e.target.value)}
+              aria-invalid={!!errors.confirmation}
               disabled={busy}
             />
           </div>
 
-          {errors.confirmation && (
-            <p className="text-xs text-destructive">
-              {errors.confirmation}
-            </p>
-          )}
+          {errors.confirmation && <p className="text-xs text-destructive">{errors.confirmation}</p>}
         </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={busy}
-        >
-          {busy
-            ? "Definindo senha..."
-            : "Definir nova senha"}
+        <Button type="submit" className="w-full" disabled={busy}>
+          {busy ? "Definindo senha..." : "Definir nova senha"}
         </Button>
 
         <button
@@ -677,11 +510,7 @@ function AlterarSenhaPage() {
  * Estrutura visual compartilhada entre os diferentes estados
  * da página.
  */
-function PasswordChangeShell({
-  children,
-}: {
-  children: ReactNode;
-}) {
+function PasswordChangeShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh grid lg:grid-cols-2 bg-background">
       <div className="hidden lg:flex flex-col justify-between p-12 bg-sidebar text-sidebar-foreground">
@@ -690,15 +519,11 @@ function PasswordChangeShell({
             <Stethoscope className="h-5 w-5" />
           </div>
 
-          <span className="text-xl font-semibold tracking-tight">
-            TriaFila
-          </span>
+          <span className="text-xl font-semibold tracking-tight">TriaFila</span>
         </div>
 
         <div className="max-w-md space-y-4">
-          <h1 className="text-3xl font-bold leading-tight">
-            Primeiro acesso seguro.
-          </h1>
+          <h1 className="text-3xl font-bold leading-tight">Primeiro acesso seguro.</h1>
 
           <p className="text-sidebar-foreground/80">
             Substitua a senha temporária por uma senha definitiva antes de utilizar o sistema.
@@ -717,9 +542,7 @@ function PasswordChangeShell({
               <Stethoscope className="h-5 w-5" />
             </div>
 
-            <span className="text-xl font-semibold">
-              TriaFila
-            </span>
+            <span className="text-xl font-semibold">TriaFila</span>
           </div>
 
           {children}
@@ -729,10 +552,7 @@ function PasswordChangeShell({
           </p>
 
           <div className="text-center">
-            <Link
-              to="/login"
-              className="text-xs text-muted-foreground hover:underline"
-            >
+            <Link to="/login" className="text-xs text-muted-foreground hover:underline">
               Tela de login
             </Link>
           </div>
