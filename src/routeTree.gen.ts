@@ -24,6 +24,7 @@ import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
 import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
 import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
 import { Route as ApiAdminUsersUserIdRouteImport } from './routes/api/admin/users/$userId'
+import { Route as ApiAdminUsersUserIdResetPasswordRouteImport } from './routes/api/admin/users/$userId/reset-password'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +101,12 @@ const ApiAdminUsersUserIdRoute = ApiAdminUsersUserIdRouteImport.update({
   path: '/$userId',
   getParentRoute: () => ApiAdminUsersRoute,
 } as any)
+const ApiAdminUsersUserIdResetPasswordRoute =
+  ApiAdminUsersUserIdResetPasswordRouteImport.update({
+    id: '/reset-password',
+    path: '/reset-password',
+    getParentRoute: () => ApiAdminUsersUserIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -115,7 +122,8 @@ export interface FileRoutesByFullPath {
   '/fila/novo': typeof AppFilaNovoRoute
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/fila/': typeof AppFilaIndexRoute
-  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRouteWithChildren
+  '/api/admin/users/$userId/reset-password': typeof ApiAdminUsersUserIdResetPasswordRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -131,7 +139,8 @@ export interface FileRoutesByTo {
   '/fila/novo': typeof AppFilaNovoRoute
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/fila': typeof AppFilaIndexRoute
-  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRouteWithChildren
+  '/api/admin/users/$userId/reset-password': typeof ApiAdminUsersUserIdResetPasswordRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -149,7 +158,8 @@ export interface FileRoutesById {
   '/_app/fila/novo': typeof AppFilaNovoRoute
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/_app/fila/': typeof AppFilaIndexRoute
-  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRouteWithChildren
+  '/api/admin/users/$userId/reset-password': typeof ApiAdminUsersUserIdResetPasswordRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/api/admin/users'
     | '/fila/'
     | '/api/admin/users/$userId'
+    | '/api/admin/users/$userId/reset-password'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/api/admin/users'
     | '/fila'
     | '/api/admin/users/$userId'
+    | '/api/admin/users/$userId/reset-password'
   id:
     | '__root__'
     | '/'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/api/admin/users'
     | '/_app/fila/'
     | '/api/admin/users/$userId'
+    | '/api/admin/users/$userId/reset-password'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -321,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminUsersUserIdRouteImport
       parentRoute: typeof ApiAdminUsersRoute
     }
+    '/api/admin/users/$userId/reset-password': {
+      id: '/api/admin/users/$userId/reset-password'
+      path: '/reset-password'
+      fullPath: '/api/admin/users/$userId/reset-password'
+      preLoaderRoute: typeof ApiAdminUsersUserIdResetPasswordRouteImport
+      parentRoute: typeof ApiAdminUsersUserIdRoute
+    }
   }
 }
 
@@ -344,12 +364,23 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiAdminUsersUserIdRouteChildren {
+  ApiAdminUsersUserIdResetPasswordRoute: typeof ApiAdminUsersUserIdResetPasswordRoute
+}
+
+const ApiAdminUsersUserIdRouteChildren: ApiAdminUsersUserIdRouteChildren = {
+  ApiAdminUsersUserIdResetPasswordRoute: ApiAdminUsersUserIdResetPasswordRoute,
+}
+
+const ApiAdminUsersUserIdRouteWithChildren =
+  ApiAdminUsersUserIdRoute._addFileChildren(ApiAdminUsersUserIdRouteChildren)
+
 interface ApiAdminUsersRouteChildren {
-  ApiAdminUsersUserIdRoute: typeof ApiAdminUsersUserIdRoute
+  ApiAdminUsersUserIdRoute: typeof ApiAdminUsersUserIdRouteWithChildren
 }
 
 const ApiAdminUsersRouteChildren: ApiAdminUsersRouteChildren = {
-  ApiAdminUsersUserIdRoute: ApiAdminUsersUserIdRoute,
+  ApiAdminUsersUserIdRoute: ApiAdminUsersUserIdRouteWithChildren,
 }
 
 const ApiAdminUsersRouteWithChildren = ApiAdminUsersRoute._addFileChildren(
