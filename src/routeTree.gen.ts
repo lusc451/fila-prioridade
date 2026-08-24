@@ -23,6 +23,7 @@ import { Route as ApiCompletePasswordChangeRouteImport } from './routes/api/comp
 import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
 import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
 import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
+import { Route as ApiAdminUsersUserIdRouteImport } from './routes/api/admin/users/$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -94,6 +95,11 @@ const ApiAdminUsersRoute = ApiAdminUsersRouteImport.update({
   path: '/api/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminUsersUserIdRoute = ApiAdminUsersUserIdRouteImport.update({
+  id: '/$userId',
+  path: '/$userId',
+  getParentRoute: () => ApiAdminUsersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -107,8 +113,9 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
-  '/api/admin/users': typeof ApiAdminUsersRoute
+  '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/fila/': typeof AppFilaIndexRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -122,8 +129,9 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
-  '/api/admin/users': typeof ApiAdminUsersRoute
+  '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/fila': typeof AppFilaIndexRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -139,8 +147,9 @@ export interface FileRoutesById {
   '/_app/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/_app/fila/novo': typeof AppFilaNovoRoute
-  '/api/admin/users': typeof ApiAdminUsersRoute
+  '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/_app/fila/': typeof AppFilaIndexRoute
+  '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/fila/novo'
     | '/api/admin/users'
     | '/fila/'
+    | '/api/admin/users/$userId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/fila/novo'
     | '/api/admin/users'
     | '/fila'
+    | '/api/admin/users/$userId'
   id:
     | '__root__'
     | '/'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/_app/fila/novo'
     | '/api/admin/users'
     | '/_app/fila/'
+    | '/api/admin/users/$userId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -199,7 +211,7 @@ export interface RootRouteChildren {
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   ApiCompletePasswordChangeRoute: typeof ApiCompletePasswordChangeRoute
-  ApiAdminUsersRoute: typeof ApiAdminUsersRoute
+  ApiAdminUsersRoute: typeof ApiAdminUsersRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -302,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/users/$userId': {
+      id: '/api/admin/users/$userId'
+      path: '/$userId'
+      fullPath: '/api/admin/users/$userId'
+      preLoaderRoute: typeof ApiAdminUsersUserIdRouteImport
+      parentRoute: typeof ApiAdminUsersRoute
+    }
   }
 }
 
@@ -325,6 +344,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiAdminUsersRouteChildren {
+  ApiAdminUsersUserIdRoute: typeof ApiAdminUsersUserIdRoute
+}
+
+const ApiAdminUsersRouteChildren: ApiAdminUsersRouteChildren = {
+  ApiAdminUsersUserIdRoute: ApiAdminUsersUserIdRoute,
+}
+
+const ApiAdminUsersRouteWithChildren = ApiAdminUsersRoute._addFileChildren(
+  ApiAdminUsersRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -333,7 +364,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   ApiCompletePasswordChangeRoute: ApiCompletePasswordChangeRoute,
-  ApiAdminUsersRoute: ApiAdminUsersRoute,
+  ApiAdminUsersRoute: ApiAdminUsersRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
