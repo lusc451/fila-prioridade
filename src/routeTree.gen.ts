@@ -18,6 +18,7 @@ import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as AppHistoricoRouteImport } from './routes/_app.historico'
 import { Route as AppPacientesRouteImport } from './routes/_app.pacientes'
 import { Route as AppProfissionaisRouteImport } from './routes/_app.profissionais'
+import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as ApiCompletePasswordChangeRouteImport } from './routes/api/complete-password-change'
 import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
 import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
@@ -67,6 +68,11 @@ const AppProfissionaisRoute = AppProfissionaisRouteImport.update({
   path: '/profissionais',
   getParentRoute: () => AppRoute,
 } as any)
+const AppUsuariosRoute = AppUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AppRoute,
+} as any)
 const ApiCompletePasswordChangeRoute =
   ApiCompletePasswordChangeRouteImport.update({
     id: '/api/complete-password-change',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/historico': typeof AppHistoricoRoute
   '/pacientes': typeof AppPacientesRoute
   '/profissionais': typeof AppProfissionaisRoute
+  '/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
   '/api/admin/users': typeof ApiAdminUsersRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/historico': typeof AppHistoricoRoute
   '/pacientes': typeof AppPacientesRoute
   '/profissionais': typeof AppProfissionaisRoute
+  '/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
   '/api/admin/users': typeof ApiAdminUsersRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/_app/historico': typeof AppHistoricoRoute
   '/_app/pacientes': typeof AppPacientesRoute
   '/_app/profissionais': typeof AppProfissionaisRoute
+  '/_app/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/_app/fila/novo': typeof AppFilaNovoRoute
   '/api/admin/users': typeof ApiAdminUsersRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/pacientes'
     | '/profissionais'
+    | '/usuarios'
     | '/api/complete-password-change'
     | '/fila/novo'
     | '/api/admin/users'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/pacientes'
     | '/profissionais'
+    | '/usuarios'
     | '/api/complete-password-change'
     | '/fila/novo'
     | '/api/admin/users'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/_app/historico'
     | '/_app/pacientes'
     | '/_app/profissionais'
+    | '/_app/usuarios'
     | '/api/complete-password-change'
     | '/_app/fila/novo'
     | '/api/admin/users'
@@ -255,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfissionaisRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/usuarios': {
+      id: '/_app/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AppUsuariosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/api/complete-password-change': {
       id: '/api/complete-password-change'
       path: '/api/complete-password-change'
@@ -290,6 +309,7 @@ interface AppRouteChildren {
   AppHistoricoRoute: typeof AppHistoricoRoute
   AppPacientesRoute: typeof AppPacientesRoute
   AppProfissionaisRoute: typeof AppProfissionaisRoute
+  AppUsuariosRoute: typeof AppUsuariosRoute
   AppFilaNovoRoute: typeof AppFilaNovoRoute
   AppFilaIndexRoute: typeof AppFilaIndexRoute
 }
@@ -298,6 +318,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppHistoricoRoute: AppHistoricoRoute,
   AppPacientesRoute: AppPacientesRoute,
   AppProfissionaisRoute: AppProfissionaisRoute,
+  AppUsuariosRoute: AppUsuariosRoute,
   AppFilaNovoRoute: AppFilaNovoRoute,
   AppFilaIndexRoute: AppFilaIndexRoute,
 }
