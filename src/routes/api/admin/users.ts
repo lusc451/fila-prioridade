@@ -517,9 +517,7 @@ async function listManagedUsers(request: Request): Promise<Response> {
   const [profilesResult, rolesResult] = await Promise.all([
     supabaseAdmin
       .from("profiles")
-      .select(
-        ["id", "nome_completo", "username", "cargo", "ativo", "must_change_password"].join(","),
-      )
+      .select("id, nome_completo, username, cargo, ativo, must_change_password")
       .in("id", userIds),
 
     supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", userIds),
@@ -781,9 +779,7 @@ async function createManagedUser(request: Request): Promise<Response> {
         must_change_password: true,
       })
       .eq("id", createdUser.id)
-      .select(
-        ["id", "nome_completo", "username", "cargo", "ativo", "must_change_password"].join(","),
-      )
+      .select("id, nome_completo, username, cargo, ativo, must_change_password")
       .maybeSingle();
 
     if (profileError || !updatedProfile) {

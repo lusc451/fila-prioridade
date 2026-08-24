@@ -158,7 +158,7 @@ export async function authenticateManagementActor(request: Request): Promise<Man
   const [profileResult, roleResult] = await Promise.all([
     supabaseAdmin
       .from("profiles")
-      .select(["id", "nome_completo", "ativo", "must_change_password"].join(","))
+      .select("id, nome_completo, ativo, must_change_password")
       .eq("id", user.id)
       .maybeSingle(),
 
