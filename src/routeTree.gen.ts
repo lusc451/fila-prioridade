@@ -21,6 +21,7 @@ import { Route as AppProfissionaisRouteImport } from './routes/_app.profissionai
 import { Route as ApiCompletePasswordChangeRouteImport } from './routes/api/complete-password-change'
 import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
 import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
+import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,6 +83,11 @@ const AppFilaNovoRoute = AppFilaNovoRouteImport.update({
   path: '/fila/novo',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiAdminUsersRoute = ApiAdminUsersRouteImport.update({
+  id: '/api/admin/users',
+  path: '/api/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/profissionais': typeof AppProfissionaisRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
+  '/api/admin/users': typeof ApiAdminUsersRoute
   '/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRoutesByTo {
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/profissionais': typeof AppProfissionaisRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
+  '/api/admin/users': typeof ApiAdminUsersRoute
   '/fila': typeof AppFilaIndexRoute
 }
 export interface FileRoutesById {
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_app/profissionais': typeof AppProfissionaisRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/_app/fila/novo': typeof AppFilaNovoRoute
+  '/api/admin/users': typeof ApiAdminUsersRoute
   '/_app/fila/': typeof AppFilaIndexRoute
 }
 export interface FileRouteTypes {
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/profissionais'
     | '/api/complete-password-change'
     | '/fila/novo'
+    | '/api/admin/users'
     | '/fila/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/profissionais'
     | '/api/complete-password-change'
     | '/fila/novo'
+    | '/api/admin/users'
     | '/fila'
   id:
     | '__root__'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_app/profissionais'
     | '/api/complete-password-change'
     | '/_app/fila/novo'
+    | '/api/admin/users'
     | '/_app/fila/'
   fileRoutesById: FileRoutesById
 }
@@ -175,6 +187,7 @@ export interface RootRouteChildren {
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   ApiCompletePasswordChangeRoute: typeof ApiCompletePasswordChangeRoute
+  ApiAdminUsersRoute: typeof ApiAdminUsersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFilaNovoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/admin/users': {
+      id: '/api/admin/users'
+      path: '/api/admin/users'
+      fullPath: '/api/admin/users'
+      preLoaderRoute: typeof ApiAdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -292,6 +312,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   ApiCompletePasswordChangeRoute: ApiCompletePasswordChangeRoute,
+  ApiAdminUsersRoute: ApiAdminUsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
