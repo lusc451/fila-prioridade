@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 
 import { CreateUserDialog } from "@/components/admin/create-user-dialog";
+import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/_app/usuarios")({
       },
     ],
   }),
+
   component: UsersPage,
 });
 
@@ -44,22 +46,35 @@ type ManagementRole = Extract<AppRole, "developer" | "admin">;
 
 type ManagedUser = {
   id: string;
+
   email: string | null;
+
   nomeCompleto: string | null;
+
   username: string | null;
+
   cargo: CargoUsuario | null;
+
   ativo: boolean | null;
+
   mustChangePassword: boolean | null;
+
   role: AppRole | null;
+
   emailConfirmado: boolean;
+
   criadoEm: string;
+
   ultimoLoginEm: string | null;
+
   cadastroCompleto: boolean;
 };
 
 type UsersSuccessResponse = {
   success: true;
+
   actorRole: ManagementRole;
+
   users: ManagedUser[];
 };
 
@@ -73,8 +88,8 @@ type UsersResponse = UsersSuccessResponse | ErrorResponse;
 /**
  * Valida minimamente o contrato HTTP retornado pelo backend.
  *
- * O TypeScript conhece os tipos em tempo de compilação, mas
- * response.json() continua sendo um valor desconhecido em runtime.
+ * O TypeScript conhece os tipos em tempo de compilação,
+ * mas response.json() continua sendo desconhecido em runtime.
  */
 function isUsersResponse(value: unknown): value is UsersResponse {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -97,10 +112,16 @@ function isUsersResponse(value: unknown): value is UsersResponse {
 function UsersPage() {
   const navigate = useNavigate();
 
-  const { session, role, loading } = useAuth();
+  const { user: currentUser, session, role, loading } = useAuth();
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
 
+  /**
+   * A role efetivamente retornada pelo backend administrativo.
+   *
+   * Ela determina também quais ações administrativas devem
+   * ser apresentadas pela interface.
+   */
   const [actorRole, setActorRole] = useState<ManagementRole | null>(null);
 
   const [listLoading, setListLoading] = useState(true);
@@ -111,19 +132,19 @@ function UsersPage() {
    * Toda alteração neste contador dispara uma nova consulta
    * ao GET /api/admin/users.
    *
-   * Ele é utilizado tanto pelo botão "Atualizar" quanto pelo
-   * callback executado após uma criação bem-sucedida.
+   * É utilizado por:
+   *
+   * - botão Atualizar;
+   * - criação de usuário;
+   * - edição de usuário.
    */
   const [reloadKey, setReloadKey] = useState(0);
 
   /**
-   * Normalizamos a role administrativa uma única vez.
+   * Normaliza a role administrativa conhecida pelo contexto.
    *
-   * O valor também é utilizado pelo formulário de criação para
-   * decidir quais perfis podem ser apresentados:
-   *
-   * developer -> developer/admin/usuario
-   * admin     -> admin/usuario
+   * Essa verificação controla apenas a experiência visual.
+   * As regras efetivas continuam no backend.
    */
   const managementRole: ManagementRole | null =
     role === "developer" || role === "admin" ? role : null;
@@ -131,11 +152,17 @@ function UsersPage() {
   const canManageUsers = managementRole !== null;
 
   /**
-   * Proteção antecipada no frontend.
+   * Edição de contas existentes é exclusiva do Developer.
    *
-   * Usuários comuns não permanecem nesta página.
+   * Utilizamos actorRole, retornada pelo próprio endpoint,
+   * para decidir se a coluna de ações deve ser exibida.
+   */
+  const canEditUsers = actorRole === "developer";
+
+  /**
+   * Usuários comuns não permanecem na rota administrativa.
    *
-   * Esta verificação não substitui a autorização server-side:
+   * Esta proteção não substitui o backend:
    * /api/admin/users continua retornando 403 para role usuario.
    */
   useEffect(() => {
@@ -152,7 +179,8 @@ function UsersPage() {
   }, [loading, role, canManageUsers, navigate]);
 
   /**
-   * Carrega a listagem administrativa usando o JWT da sessão.
+   * Carrega a listagem administrativa utilizando o JWT
+   * da sessão atualmente autenticada.
    */
   useEffect(() => {
     if (loading || !canManageUsers) {
@@ -255,7 +283,7 @@ function UsersPage() {
   }, [session?.access_token, loading, canManageUsers, navigate, reloadKey]);
 
   /**
-   * Reutilizado pelo botão Atualizar e pelo formulário de criação.
+   * Dispara uma nova consulta administrativa.
    */
   function reloadUsers() {
     setReloadKey((current) => current + 1);
@@ -284,11 +312,13 @@ function UsersPage() {
 
   const totalUsers = users.length;
 
-  const activeUsers = users.filter((user) => user.ativo === true).length;
+  const activeUsers = users.filter((managedUser) => managedUser.ativo === true).length;
 
-  const pendingPasswords = users.filter((user) => user.mustChangePassword === true).length;
+  const pendingPasswords = users.filter(
+    (managedUser) => managedUser.mustChangePassword === true,
+  ).length;
 
-  const incompleteUsers = users.filter((user) => !user.cadastroCompleto).length;
+  const incompleteUsers = users.filter((managedUser) => !managedUser.cadastroCompleto).length;
 
   return (
     <div className="space-y-6">
@@ -420,49 +450,68 @@ function UsersPage() {
                     <TableHead>Primeiro acesso</TableHead>
 
                     <TableHead>Último login</TableHead>
+
+                    {canEditUsers && <TableHead className="text-right">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
+                  {users.map((managedUser) => (
+                    <TableRow key={managedUser.id}>
                       <TableCell>
                         <div className="min-w-52">
                           <div className="flex items-center gap-2">
                             <span className="font-medium">
-                              {user.nomeCompleto ?? "Nome não informado"}
+                              {managedUser.nomeCompleto ?? "Nome não informado"}
                             </span>
 
-                            {!user.cadastroCompleto && (
+                            {!managedUser.cadastroCompleto && (
                               <Badge variant="destructive">Incompleto</Badge>
                             )}
                           </div>
 
                           <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                            <p>{user.username ? `@${user.username}` : "Username não informado"}</p>
+                            <p>
+                              {managedUser.username
+                                ? `@${managedUser.username}`
+                                : "Username não informado"}
+                            </p>
 
-                            <p>{user.email ?? "E-mail não informado"}</p>
+                            <p>{managedUser.email ?? "E-mail não informado"}</p>
                           </div>
                         </div>
                       </TableCell>
 
-                      <TableCell>{formatCargo(user.cargo)}</TableCell>
+                      <TableCell>{formatCargo(managedUser.cargo)}</TableCell>
 
                       <TableCell>
-                        <RoleBadge role={user.role} />
+                        <RoleBadge role={managedUser.role} />
                       </TableCell>
 
                       <TableCell>
-                        <StatusBadge active={user.ativo} />
+                        <StatusBadge active={managedUser.ativo} />
                       </TableCell>
 
                       <TableCell>
-                        <PasswordStatusBadge mustChangePassword={user.mustChangePassword} />
+                        <PasswordStatusBadge mustChangePassword={managedUser.mustChangePassword} />
                       </TableCell>
 
                       <TableCell className="whitespace-nowrap">
-                        {formatDateTime(user.ultimoLoginEm)}
+                        {formatDateTime(managedUser.ultimoLoginEm)}
                       </TableCell>
+
+                      {canEditUsers && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end">
+                            <EditUserDialog
+                              user={managedUser}
+                              currentUserId={currentUser?.id ?? null}
+                              accessToken={session?.access_token ?? null}
+                              onUpdated={reloadUsers}
+                            />
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
