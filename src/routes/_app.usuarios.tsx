@@ -9,6 +9,8 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import { CreateUserDialog } from "@/components/admin/create-user-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +40,8 @@ type AppRole = Database["public"]["Enums"]["app_role"];
 
 type CargoUsuario = Database["public"]["Enums"]["cargo_usuario"];
 
+type ManagementRole = Extract<AppRole, "developer" | "admin">;
+
 type ManagedUser = {
   id: string;
   email: string | null;
@@ -55,7 +59,7 @@ type ManagedUser = {
 
 type UsersSuccessResponse = {
   success: true;
-  actorRole: "developer" | "admin";
+  actorRole: ManagementRole;
   users: ManagedUser[];
 };
 
@@ -67,10 +71,10 @@ type ErrorResponse = {
 type UsersResponse = UsersSuccessResponse | ErrorResponse;
 
 /**
- * Valida minimamente o contrato retornado pelo endpoint.
+ * Valida minimamente o contrato HTTP retornado pelo backend.
  *
- * A tipagem TypeScript não protege contra uma resposta HTTP
- * malformada em runtime, portanto não fazemos cast cego.
+ * O TypeScript conhece os tipos em tempo de compilação, mas
+ * response.json() continua sendo um valor desconhecido em runtime.
  */
 function isUsersResponse(value: unknown): value is UsersResponse {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -97,23 +101,42 @@ function UsersPage() {
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
 
-  const [actorRole, setActorRole] = useState<"developer" | "admin" | null>(null);
+  const [actorRole, setActorRole] = useState<ManagementRole | null>(null);
 
   const [listLoading, setListLoading] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Toda alteração neste contador dispara uma nova consulta
+   * ao GET /api/admin/users.
+   *
+   * Ele é utilizado tanto pelo botão "Atualizar" quanto pelo
+   * callback executado após uma criação bem-sucedida.
+   */
   const [reloadKey, setReloadKey] = useState(0);
 
-  const canManageUsers = role === "developer" || role === "admin";
+  /**
+   * Normalizamos a role administrativa uma única vez.
+   *
+   * O valor também é utilizado pelo formulário de criação para
+   * decidir quais perfis podem ser apresentados:
+   *
+   * developer -> developer/admin/usuario
+   * admin     -> admin/usuario
+   */
+  const managementRole: ManagementRole | null =
+    role === "developer" || role === "admin" ? role : null;
+
+  const canManageUsers = managementRole !== null;
 
   /**
    * Proteção antecipada no frontend.
    *
    * Usuários comuns não permanecem nesta página.
    *
-   * O endpoint /api/admin/users continua sendo a barreira
-   * definitiva e retorna 403 caso alguém contorne a UI.
+   * Esta verificação não substitui a autorização server-side:
+   * /api/admin/users continua retornando 403 para role usuario.
    */
   useEffect(() => {
     if (loading) {
@@ -129,8 +152,7 @@ function UsersPage() {
   }, [loading, role, canManageUsers, navigate]);
 
   /**
-   * Carrega a listagem administrativa usando o JWT da sessão
-   * atualmente autenticada.
+   * Carrega a listagem administrativa usando o JWT da sessão.
    */
   useEffect(() => {
     if (loading || !canManageUsers) {
@@ -142,8 +164,11 @@ function UsersPage() {
     if (!accessToken) {
       setUsers([]);
       setActorRole(null);
+
       setError("Sua sessão não está disponível. Entre novamente no sistema.");
+
       setListLoading(false);
+
       return;
     }
 
@@ -158,9 +183,11 @@ function UsersPage() {
       try {
         const response = await fetch("/api/admin/users", {
           method: "GET",
+
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
+
           signal: controller.signal,
         });
 
@@ -199,11 +226,7 @@ function UsersPage() {
 
         setActorRole(payload.actorRole);
       } catch (requestError: unknown) {
-        if (controller.signal.aborted) {
-          return;
-        }
-
-        if (cancelled) {
+        if (controller.signal.aborted || cancelled) {
           return;
         }
 
@@ -226,14 +249,18 @@ function UsersPage() {
 
     return () => {
       cancelled = true;
+
       controller.abort();
     };
-  }, [session?.access_token, role, loading, canManageUsers, navigate, reloadKey]);
+  }, [session?.access_token, loading, canManageUsers, navigate, reloadKey]);
 
   /**
-   * Enquanto o contexto de autenticação determina a role,
-   * não renderizamos conteúdo administrativo.
+   * Reutilizado pelo botão Atualizar e pelo formulário de criação.
    */
+  function reloadUsers() {
+    setReloadKey((current) => current + 1);
+  }
+
   if (loading) {
     return (
       <UsersPageState
@@ -244,9 +271,9 @@ function UsersPage() {
   }
 
   /**
-   * O useEffect acima redirecionará usuários comuns para /fila.
+   * O useEffect redirecionará a role usuario para /fila.
    */
-  if (!canManageUsers) {
+  if (!canManageUsers || !managementRole) {
     return (
       <UsersPageState
         title="Acesso restrito"
@@ -270,19 +297,22 @@ function UsersPage() {
           <h2 className="text-2xl font-bold tracking-tight">Usuários</h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Consulte as contas cadastradas e a situação de acesso ao sistema.
+            Consulte e cadastre as contas autorizadas a acessar o sistema.
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          disabled={listLoading}
-          onClick={() => setReloadKey((current) => current + 1)}
-        >
-          <RefreshCw className={listLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-          Atualizar
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <CreateUserDialog
+            actorRole={managementRole}
+            accessToken={session?.access_token ?? null}
+            onCreated={reloadUsers}
+          />
+
+          <Button type="button" variant="outline" disabled={listLoading} onClick={reloadUsers}>
+            <RefreshCw className={listLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -350,7 +380,7 @@ function UsersPage() {
                 variant="outline"
                 size="sm"
                 className="mt-4"
-                onClick={() => setReloadKey((current) => current + 1)}
+                onClick={reloadUsers}
               >
                 <RefreshCw className="h-4 w-4" />
                 Tentar novamente
