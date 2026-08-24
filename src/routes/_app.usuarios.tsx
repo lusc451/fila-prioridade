@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 
 import { CreateUserDialog } from "@/components/admin/create-user-dialog";
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
+import { ResetPasswordDialog } from "@/components/admin/reset-password-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,8 +89,8 @@ type UsersResponse = UsersSuccessResponse | ErrorResponse;
 /**
  * Valida minimamente o contrato HTTP retornado pelo backend.
  *
- * O TypeScript conhece os tipos em tempo de compilação,
- * mas response.json() continua sendo desconhecido em runtime.
+ * response.json() continua sendo um valor desconhecido em runtime,
+ * mesmo quando o restante da aplicação utiliza TypeScript.
  */
 function isUsersResponse(value: unknown): value is UsersResponse {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
@@ -117,10 +118,10 @@ function UsersPage() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
 
   /**
-   * A role efetivamente retornada pelo backend administrativo.
+   * Role efetivamente retornada pelo endpoint administrativo.
    *
-   * Ela determina também quais ações administrativas devem
-   * ser apresentadas pela interface.
+   * Além de informar o badge da página, ela controla quais
+   * operações sobre usuários existentes serão exibidas.
    */
   const [actorRole, setActorRole] = useState<ManagementRole | null>(null);
 
@@ -129,22 +130,23 @@ function UsersPage() {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Toda alteração neste contador dispara uma nova consulta
-   * ao GET /api/admin/users.
+   * Toda alteração neste contador dispara um novo
+   * GET /api/admin/users.
    *
-   * É utilizado por:
+   * Ele é reutilizado após:
    *
-   * - botão Atualizar;
-   * - criação de usuário;
-   * - edição de usuário.
+   * - criação;
+   * - edição;
+   * - redefinição de senha;
+   * - atualização manual.
    */
   const [reloadKey, setReloadKey] = useState(0);
 
   /**
    * Normaliza a role administrativa conhecida pelo contexto.
    *
-   * Essa verificação controla apenas a experiência visual.
-   * As regras efetivas continuam no backend.
+   * Essa verificação é somente uma proteção de interface.
+   * A autorização efetiva permanece nos endpoints server-side.
    */
   const managementRole: ManagementRole | null =
     role === "developer" || role === "admin" ? role : null;
@@ -152,18 +154,21 @@ function UsersPage() {
   const canManageUsers = managementRole !== null;
 
   /**
-   * Edição de contas existentes é exclusiva do Developer.
+   * Operações sobre contas já existentes são exclusivas
+   * do Developer.
    *
-   * Utilizamos actorRole, retornada pelo próprio endpoint,
-   * para decidir se a coluna de ações deve ser exibida.
+   * Atualmente isso inclui:
+   *
+   * - editar;
+   * - redefinir senha.
    */
-  const canEditUsers = actorRole === "developer";
+  const canManageExistingUsers = actorRole === "developer";
 
   /**
    * Usuários comuns não permanecem na rota administrativa.
    *
-   * Esta proteção não substitui o backend:
-   * /api/admin/users continua retornando 403 para role usuario.
+   * O endpoint também continuará respondendo 403 caso alguém
+   * tente contornar a interface.
    */
   useEffect(() => {
     if (loading) {
@@ -299,7 +304,7 @@ function UsersPage() {
   }
 
   /**
-   * O useEffect redirecionará a role usuario para /fila.
+   * O useEffect redirecionará role usuario para /fila.
    */
   if (!canManageUsers || !managementRole) {
     return (
@@ -451,7 +456,7 @@ function UsersPage() {
 
                     <TableHead>Último login</TableHead>
 
-                    {canEditUsers && <TableHead className="text-right">Ações</TableHead>}
+                    {canManageExistingUsers && <TableHead className="text-right">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
 
@@ -500,14 +505,28 @@ function UsersPage() {
                         {formatDateTime(managedUser.ultimoLoginEm)}
                       </TableCell>
 
-                      {canEditUsers && (
+                      {canManageExistingUsers && (
                         <TableCell className="text-right">
-                          <div className="flex justify-end">
+                          <div className="flex justify-end gap-1">
                             <EditUserDialog
                               user={managedUser}
                               currentUserId={currentUser?.id ?? null}
                               accessToken={session?.access_token ?? null}
                               onUpdated={reloadUsers}
+                            />
+
+                            <ResetPasswordDialog
+                              user={{
+                                id: managedUser.id,
+
+                                nomeCompleto: managedUser.nomeCompleto,
+
+                                username: managedUser.username,
+
+                                email: managedUser.email,
+                              }}
+                              accessToken={session?.access_token ?? null}
+                              onReset={reloadUsers}
                             />
                           </div>
                         </TableCell>
