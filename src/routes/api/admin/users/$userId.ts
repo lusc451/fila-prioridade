@@ -31,6 +31,34 @@ export const Route = createFileRoute("/api/admin/users/$userId")({
           );
         }
       },
+
+      DELETE: async ({ request, params }) => {
+        try {
+          return await archiveManagedUser(request, params.userId);
+        } catch (error: unknown) {
+          /**
+           * Nunca registrar:
+           *
+           * - JWT;
+           * - service-role key;
+           * - senha;
+           * - conteúdo integral do usuário;
+           * - metadados completos do usuário.
+           */
+          console.error(
+            "Erro interno ao arquivar usuário:",
+            error instanceof Error ? error.message : "Erro desconhecido",
+          );
+
+          return jsonResponse(
+            {
+              success: false,
+              error: "Não foi possível arquivar o usuário.",
+            },
+            500,
+          );
+        }
+      },
     },
   },
 });
@@ -78,12 +106,22 @@ type UpdateUserSuccessResponse = {
   user: ManagedUser;
 };
 
+type ArchiveUserSuccessResponse = {
+  success: true;
+
+  user: {
+    id: string;
+    archivedAt: string;
+    archivedBy: string;
+  };
+};
+
 type ErrorResponse = {
   success: false;
   error: string;
 };
 
-type ApiResponse = UpdateUserSuccessResponse | ErrorResponse;
+type ApiResponse = UpdateUserSuccessResponse | ArchiveUserSuccessResponse | ErrorResponse;
 
 type ParsedUpdateBody =
   | {
@@ -413,6 +451,7 @@ async function hasAnotherActiveDeveloper(excludedUserId: string): Promise<
     .select("id")
     .in("id", ids)
     .eq("ativo", true)
+    .is("deleted_at", null)
     .limit(1);
 
   if (profileError) {
@@ -540,7 +579,7 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
   const [profileResult, roleResult] = await Promise.all([
     supabaseAdmin
       .from("profiles")
-      .select("id, nome_completo, username, cargo, ativo, must_change_password")
+      .select("id, nome_completo, username, cargo, ativo, deleted_at, must_change_password")
       .eq("id", userId)
       .maybeSingle(),
 
@@ -591,6 +630,16 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
    * O TypeScript não mantém necessariamente o narrowing de variáveis
    * capturadas por funções assíncronas aninhadas, como o rollback.
    */
+  if (currentProfile.deleted_at !== null) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "Esta conta foi arquivada e não pode ser editada.",
+      },
+      409,
+    );
+  }
+
   const originalProfile = currentProfile;
   const originalRole = currentRole;
 
@@ -809,7 +858,7 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
       .from("profiles")
       .update(profileUpdate)
       .eq("id", userId)
-      .select("id, nome_completo, username, cargo, ativo, must_change_password")
+      .select("id, nome_completo, username, cargo, ativo, deleted_at, must_change_password")
       .maybeSingle();
 
     if (profileError || !updatedProfile) {
@@ -959,6 +1008,314 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
       success: true,
 
       user: responseUser,
+    },
+    200,
+  );
+}
+
+/**
+ * ------------------------------------------------------------------
+ * DELETE /api/admin/users/:userId
+ * ------------------------------------------------------------------
+ *
+ * Exclusão lógica de uma conta administrativa.
+ *
+ * A operação preserva:
+ *
+ * - auth.users;
+ * - public.profiles;
+ * - public.user_roles;
+ * - referências históricas ao UUID do usuário.
+ *
+ * O estado final será:
+ *
+ * ativo      = false
+ * deleted_at = timestamp
+ * deleted_by = Developer responsável
+ */
+async function archiveManagedUser(request: Request, userId: string): Promise<Response> {
+  /**
+   * --------------------------------------------------------------
+   * 1. VALIDAR IDENTIFICADOR
+   * --------------------------------------------------------------
+   */
+  if (!isValidUuid(userId)) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "O identificador do usuário ? inválido.",
+      },
+      400,
+    );
+  }
+
+  /**
+   * --------------------------------------------------------------
+   * 2. AUTENTICAR E AUTORIZAR O ATOR
+   * --------------------------------------------------------------
+   *
+   * canManageExistingUsers() é propositalmente reutilizado.
+   *
+   * Atualmente apenas Developer satisfaz essa regra.
+   */
+  const { authenticateManagementActor, canManageExistingUsers } =
+    await import("@/lib/server/user-management-auth.server");
+
+  const authentication = await authenticateManagementActor(request);
+
+  if (!authentication.ok) {
+    return authentication.response;
+  }
+
+  const { actor } = authentication;
+
+  if (!canManageExistingUsers(actor.role)) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "Você não possui permissão para arquivar usuários existentes.",
+      },
+      403,
+    );
+  }
+
+  /**
+   * O Developer autenticado nunca poderá arquivar a própria conta.
+   *
+   * Essa proteção ocorre antes de qualquer alteração.
+   */
+  if (actor.user.id === userId) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "Você não pode arquivar sua própria conta.",
+      },
+      409,
+    );
+  }
+
+  /**
+   * --------------------------------------------------------------
+   * 3. VALIDAR EXISTÊNCIA NO SUPABASE AUTH
+   * --------------------------------------------------------------
+   */
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: authUserResult, error: authUserError } =
+    await supabaseAdmin.auth.admin.getUserById(userId);
+
+  if (authUserError || !authUserResult.user) {
+    if (authUserError?.status === 404) {
+      return jsonResponse(
+        {
+          success: false,
+          error: "Usuário não encontrado.",
+        },
+        404,
+      );
+    }
+
+    console.error(
+      "Falha ao consultar usuário antes do arquivamento:",
+      authUserError?.message ?? "Usuário ausente",
+    );
+
+    return jsonResponse(
+      {
+        success: false,
+        error: "Não foi possível consultar a conta de autenticação.",
+      },
+      500,
+    );
+  }
+
+  /**
+   * --------------------------------------------------------------
+   * 4. CARREGAR PROFILE E ROLE
+   * --------------------------------------------------------------
+   */
+  const [profileResult, roleResult] = await Promise.all([
+    supabaseAdmin
+      .from("profiles")
+      .select("id, ativo, deleted_at, deleted_by")
+      .eq("id", userId)
+      .maybeSingle(),
+
+    supabaseAdmin.from("user_roles").select("user_id, role").eq("user_id", userId).maybeSingle(),
+  ]);
+
+  if (profileResult.error) {
+    console.error("Falha ao consultar profile antes do arquivamento:", profileResult.error.message);
+
+    return jsonResponse(
+      {
+        success: false,
+        error: "Não foi possível consultar o perfil interno do usuário.",
+      },
+      500,
+    );
+  }
+
+  if (roleResult.error) {
+    console.error("Falha ao consultar role antes do arquivamento:", roleResult.error.message);
+
+    return jsonResponse(
+      {
+        success: false,
+        error: "Não foi possível consultar o perfil de acesso do usuário.",
+      },
+      500,
+    );
+  }
+
+  const currentProfile = profileResult.data;
+
+  const currentRole = roleResult.data?.role;
+
+  if (!currentProfile || !currentRole) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "O cadastro interno deste usuário está incompleto.",
+      },
+      409,
+    );
+  }
+
+  /**
+   * DELETE é idempotente em alguns desenhos de API, mas aqui
+   * deliberadamente retornamos conflito.
+   *
+   * Isso torna explícito que a conta já passou pela operação
+   * administrativa de arquivamento.
+   */
+  if (currentProfile.deleted_at !== null) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "Esta conta já está arquivada.",
+      },
+      409,
+    );
+  }
+
+  /**
+   * --------------------------------------------------------------
+   * 5. PROTEGER O ÚLTIMO DEVELOPER ATIVO
+   * --------------------------------------------------------------
+   *
+   * Se o alvo é atualmente um Developer ativo, arquivá-lo
+   * removerá essa conta do conjunto de administradores ativos.
+   */
+  const currentlyActiveDeveloper = currentRole === "developer" && currentProfile.ativo === true;
+
+  if (currentlyActiveDeveloper) {
+    const continuity = await hasAnotherActiveDeveloper(userId);
+
+    if (!continuity.ok) {
+      return continuity.response;
+    }
+
+    if (!continuity.exists) {
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "A operação foi bloqueada porque o sistema deve possuir pelo menos um Developer ativo.",
+        },
+        409,
+      );
+    }
+  }
+
+  /**
+   * --------------------------------------------------------------
+   * 6. ARQUIVAR PROFILE
+   * --------------------------------------------------------------
+   *
+   * O timestamp é gerado uma única vez para ser utilizado tanto
+   * no banco quanto na resposta.
+   *
+   * .is("deleted_at", null) também protege contra uma segunda
+   * requisição concorrente tentando arquivar a mesma conta.
+   */
+  const archivedAt = new Date().toISOString();
+
+  const { data: archivedProfile, error: archiveError } = await supabaseAdmin
+    .from("profiles")
+    .update({
+      ativo: false,
+
+      deleted_at: archivedAt,
+
+      deleted_by: actor.user.id,
+    })
+    .eq("id", userId)
+    .is("deleted_at", null)
+    .select("id, ativo, deleted_at, deleted_by")
+    .maybeSingle();
+
+  if (archiveError) {
+    console.error("Falha ao arquivar profile do usuário:", archiveError.message);
+
+    return jsonResponse(
+      {
+        success: false,
+        error: "Não foi possível arquivar o usuário.",
+      },
+      500,
+    );
+  }
+
+  /**
+   * Se outra requisição alterou deleted_at entre a leitura e o
+   * UPDATE, nenhum registro será retornado.
+   */
+  if (!archivedProfile) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "A conta foi alterada por outra operação. Atualize a listagem e tente novamente.",
+      },
+      409,
+    );
+  }
+
+  /**
+   * Defesa adicional contra um retorno inesperado do banco.
+   */
+  if (
+    archivedProfile.ativo !== false ||
+    archivedProfile.deleted_at === null ||
+    archivedProfile.deleted_by === null
+  ) {
+    console.error("Estado inesperado após arquivamento de usuário.");
+
+    return jsonResponse(
+      {
+        success: false,
+        error: "O usuário foi atualizado, mas o estado de arquivamento não pôde ser confirmado.",
+      },
+      500,
+    );
+  }
+
+  /**
+   * --------------------------------------------------------------
+   * 7. SUCESSO
+   * --------------------------------------------------------------
+   */
+  return jsonResponse(
+    {
+      success: true,
+
+      user: {
+        id: archivedProfile.id,
+
+        archivedAt: archivedProfile.deleted_at,
+
+        archivedBy: archivedProfile.deleted_by,
+      },
     },
     200,
   );

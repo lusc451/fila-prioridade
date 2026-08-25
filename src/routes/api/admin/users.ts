@@ -517,7 +517,7 @@ async function listManagedUsers(request: Request): Promise<Response> {
   const [profilesResult, rolesResult] = await Promise.all([
     supabaseAdmin
       .from("profiles")
-      .select("id, nome_completo, username, cargo, ativo, must_change_password")
+      .select("id, nome_completo, username, cargo, ativo, deleted_at, must_change_password")
       .in("id", userIds),
 
     supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", userIds),
@@ -552,41 +552,49 @@ async function listManagedUsers(request: Request): Promise<Response> {
 
   const profilesById = new Map(profilesResult.data.map((profile) => [profile.id, profile]));
 
+  const archivedUserIds = new Set(
+    profilesResult.data
+      .filter((profile) => profile.deleted_at !== null)
+      .map((profile) => profile.id),
+  );
+
   const rolesByUserId = new Map(
     rolesResult.data.map((userRole) => [userRole.user_id, userRole.role]),
   );
 
-  const users: ManagedUser[] = authUsers.map((authUser) => {
-    const profile = profilesById.get(authUser.id);
+  const users: ManagedUser[] = authUsers
+    .filter((authUser) => !archivedUserIds.has(authUser.id))
+    .map((authUser) => {
+      const profile = profilesById.get(authUser.id);
 
-    const role = rolesByUserId.get(authUser.id);
+      const role = rolesByUserId.get(authUser.id);
 
-    return {
-      id: authUser.id,
+      return {
+        id: authUser.id,
 
-      email: authUser.email ?? null,
+        email: authUser.email ?? null,
 
-      nomeCompleto: profile?.nome_completo ?? null,
+        nomeCompleto: profile?.nome_completo ?? null,
 
-      username: profile?.username ?? null,
+        username: profile?.username ?? null,
 
-      cargo: profile?.cargo ?? null,
+        cargo: profile?.cargo ?? null,
 
-      ativo: profile?.ativo ?? null,
+        ativo: profile?.ativo ?? null,
 
-      mustChangePassword: profile?.must_change_password ?? null,
+        mustChangePassword: profile?.must_change_password ?? null,
 
-      role: role ?? null,
+        role: role ?? null,
 
-      emailConfirmado: Boolean(authUser.email_confirmed_at),
+        emailConfirmado: Boolean(authUser.email_confirmed_at),
 
-      criadoEm: authUser.created_at,
+        criadoEm: authUser.created_at,
 
-      ultimoLoginEm: authUser.last_sign_in_at ?? null,
+        ultimoLoginEm: authUser.last_sign_in_at ?? null,
 
-      cadastroCompleto: Boolean(profile && role),
-    };
-  });
+        cadastroCompleto: Boolean(profile && role),
+      };
+    });
 
   users.sort((left, right) => {
     const leftLabel = left.nomeCompleto ?? left.email ?? "";
