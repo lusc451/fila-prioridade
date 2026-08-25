@@ -296,6 +296,8 @@ export function AuthProvider({
               "cargo",
               "ativo",
               "must_change_password",
+              "deleted_at",
+              "deleted_by",
               "created_at",
               "updated_at",
             ].join(","),

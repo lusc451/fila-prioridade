@@ -169,6 +169,8 @@ export type Database = {
           ativo: boolean
           cargo: Database["public"]["Enums"]["cargo_usuario"] | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           id: string
           must_change_password: boolean
           nome_completo: string
@@ -179,6 +181,8 @@ export type Database = {
           ativo?: boolean
           cargo?: Database["public"]["Enums"]["cargo_usuario"] | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id: string
           must_change_password?: boolean
           nome_completo: string
@@ -189,6 +193,8 @@ export type Database = {
           ativo?: boolean
           cargo?: Database["public"]["Enums"]["cargo_usuario"] | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           id?: string
           must_change_password?: boolean
           nome_completo?: string

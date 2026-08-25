@@ -12,6 +12,7 @@ export type ManagementActor = {
     id: string;
     nome_completo: string;
     ativo: boolean;
+    deleted_at: string | null;
     must_change_password: boolean;
   };
 };
@@ -158,7 +159,7 @@ export async function authenticateManagementActor(request: Request): Promise<Man
   const [profileResult, roleResult] = await Promise.all([
     supabaseAdmin
       .from("profiles")
-      .select("id, nome_completo, ativo, must_change_password")
+      .select("id, nome_completo, ativo, deleted_at, must_change_password")
       .eq("id", user.id)
       .maybeSingle(),
 
@@ -194,6 +195,22 @@ export async function authenticateManagementActor(request: Request): Promise<Man
     return {
       ok: false,
       response: errorResponse("Perfil da conta não encontrado.", 403),
+    };
+  }
+
+  /**
+   * Uma conta arquivada ? bloqueada explicitamente antes
+   * da verifica??o gen?rica de conta inativa.
+   *
+   * Isso permite distinguir:
+   *
+   * - conta arquivada;
+   * - conta apenas inativa.
+   */
+  if (profile.deleted_at !== null) {
+    return {
+      ok: false,
+      response: errorResponse("Esta conta foi arquivada.", 403),
     };
   }
 
@@ -234,6 +251,7 @@ export async function authenticateManagementActor(request: Request): Promise<Man
         id: profile.id,
         nome_completo: profile.nome_completo,
         ativo: profile.ativo,
+        deleted_at: profile.deleted_at,
         must_change_password: profile.must_change_password,
       },
     },
