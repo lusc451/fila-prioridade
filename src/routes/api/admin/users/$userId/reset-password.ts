@@ -337,7 +337,7 @@ async function resetManagedUserPassword(request: Request, userId: string): Promi
    */
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("profiles")
-    .select("id, must_change_password")
+    .select("id, deleted_at, must_change_password")
     .eq("id", userId)
     .maybeSingle();
 
@@ -361,6 +361,21 @@ async function resetManagedUserPassword(request: Request, userId: string): Promi
       {
         success: false,
         error: "O cadastro interno deste usuário está incompleto.",
+      },
+      409,
+    );
+  }
+
+  /**
+   * Contas arquivadas nao podem receber uma nova senha
+   * temporaria. A restauracao, se existir futuramente,
+   * devera ser uma operacao administrativa explicita.
+   */
+  if (profile.deleted_at !== null) {
+    return jsonResponse(
+      {
+        success: false,
+        error: "Esta conta está arquivada e não pode ter a senha redefinida.",
       },
       409,
     );
