@@ -669,6 +669,20 @@ async function createManagedUser(request: Request): Promise<Response> {
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  const { createAuditedSupabaseAdminClient } =
+    await import("@/lib/server/audited-supabase-admin.server");
+
+  /**
+   * Cliente exclusivo desta criacao administrativa.
+   *
+   * actor.user.id ja foi validado por
+   * authenticateManagementActor().
+   *
+   * O PostgreSQL validara novamente esse UUID por meio de
+   * resolve_audit_actor() antes de registra-lo no audit_log.
+   */
+  const auditedSupabaseAdmin = createAuditedSupabaseAdminClient(actor.user.id);
+
   /**
    * 4. Verificar previamente a unicidade do username.
    *
@@ -773,7 +787,7 @@ async function createManagedUser(request: Request): Promise<Response> {
      * Não confiamos somente nos metadados.
      * Gravamos explicitamente os valores funcionais finais.
      */
-    const { data: updatedProfile, error: profileError } = await supabaseAdmin
+    const { data: updatedProfile, error: profileError } = await auditedSupabaseAdmin
       .from("profiles")
       .update({
         nome_completo: data.nomeCompleto,
@@ -814,7 +828,7 @@ async function createManagedUser(request: Request): Promise<Response> {
      * Existe índice UNIQUE(user_id), portanto uma conta nunca
      * deve acumular múltiplas roles.
      */
-    const { data: configuredRole, error: roleError } = await supabaseAdmin
+    const { data: configuredRole, error: roleError } = await auditedSupabaseAdmin
       .from("user_roles")
       .upsert(
         {
