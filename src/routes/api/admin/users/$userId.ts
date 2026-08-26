@@ -812,7 +812,7 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
      * O rollback segue, portanto, a ordem inversa das alterações.
      */
     if (roleApplied) {
-      const { error: roleRollbackError } = await supabaseAdmin
+      const { error: roleRollbackError } = await auditedSupabaseAdmin
         .from("user_roles")
         .update({
           role: originalRole,
@@ -911,7 +911,7 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
    * --------------------------------------------------------------
    */
   if (roleNeedsUpdate) {
-    const { data: updatedRole, error: roleError } = await supabaseAdmin
+    const { data: updatedRole, error: roleError } = await auditedSupabaseAdmin
       .from("user_roles")
       .update({
         role: nextRole,
