@@ -22,6 +22,7 @@ import { Route as AppUsuariosRouteImport } from './routes/_app.usuarios'
 import { Route as ApiCompletePasswordChangeRouteImport } from './routes/api/complete-password-change'
 import { Route as AppFilaIndexRouteImport } from './routes/_app.fila.index'
 import { Route as AppFilaNovoRouteImport } from './routes/_app.fila.novo'
+import { Route as ApiAdminAuditProbeRouteImport } from './routes/api/admin/audit-probe'
 import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
 import { Route as ApiAdminUsersUserIdRouteImport } from './routes/api/admin/users/$userId'
 import { Route as ApiAdminUsersUserIdResetPasswordRouteImport } from './routes/api/admin/users/$userId/reset-password'
@@ -91,6 +92,11 @@ const AppFilaNovoRoute = AppFilaNovoRouteImport.update({
   path: '/fila/novo',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiAdminAuditProbeRoute = ApiAdminAuditProbeRouteImport.update({
+  id: '/api/admin/audit-probe',
+  path: '/api/admin/audit-probe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminUsersRoute = ApiAdminUsersRouteImport.update({
   id: '/api/admin/users',
   path: '/api/admin/users',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
+  '/api/admin/audit-probe': typeof ApiAdminAuditProbeRoute
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/fila/': typeof AppFilaIndexRoute
   '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRouteWithChildren
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/fila/novo': typeof AppFilaNovoRoute
+  '/api/admin/audit-probe': typeof ApiAdminAuditProbeRoute
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/fila': typeof AppFilaIndexRoute
   '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRouteWithChildren
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/_app/usuarios': typeof AppUsuariosRoute
   '/api/complete-password-change': typeof ApiCompletePasswordChangeRoute
   '/_app/fila/novo': typeof AppFilaNovoRoute
+  '/api/admin/audit-probe': typeof ApiAdminAuditProbeRoute
   '/api/admin/users': typeof ApiAdminUsersRouteWithChildren
   '/_app/fila/': typeof AppFilaIndexRoute
   '/api/admin/users/$userId': typeof ApiAdminUsersUserIdRouteWithChildren
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/api/complete-password-change'
     | '/fila/novo'
+    | '/api/admin/audit-probe'
     | '/api/admin/users'
     | '/fila/'
     | '/api/admin/users/$userId'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/usuarios'
     | '/api/complete-password-change'
     | '/fila/novo'
+    | '/api/admin/audit-probe'
     | '/api/admin/users'
     | '/fila'
     | '/api/admin/users/$userId'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/_app/usuarios'
     | '/api/complete-password-change'
     | '/_app/fila/novo'
+    | '/api/admin/audit-probe'
     | '/api/admin/users'
     | '/_app/fila/'
     | '/api/admin/users/$userId'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   ApiCompletePasswordChangeRoute: typeof ApiCompletePasswordChangeRoute
+  ApiAdminAuditProbeRoute: typeof ApiAdminAuditProbeRoute
   ApiAdminUsersRoute: typeof ApiAdminUsersRouteWithChildren
 }
 
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFilaNovoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/admin/audit-probe': {
+      id: '/api/admin/audit-probe'
+      path: '/api/admin/audit-probe'
+      fullPath: '/api/admin/audit-probe'
+      preLoaderRoute: typeof ApiAdminAuditProbeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/users': {
       id: '/api/admin/users'
       path: '/api/admin/users'
@@ -395,6 +415,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   ApiCompletePasswordChangeRoute: ApiCompletePasswordChangeRoute,
+  ApiAdminAuditProbeRoute: ApiAdminAuditProbeRoute,
   ApiAdminUsersRoute: ApiAdminUsersRouteWithChildren,
 }
 export const routeTree = rootRouteImport
