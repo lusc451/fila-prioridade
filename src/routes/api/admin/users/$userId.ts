@@ -546,6 +546,20 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
    */
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  const { createAuditedSupabaseAdminClient } =
+    await import("@/lib/server/audited-supabase-admin.server");
+
+  /**
+   * Cliente exclusivo desta requisicao administrativa.
+   *
+   * actor.user.id ja foi obtido de um JWT validado por
+   * authenticateManagementActor().
+   *
+   * O PostgreSQL realiza uma segunda validacao antes de aceitar
+   * esse UUID como autor da operacao.
+   */
+  const auditedSupabaseAdmin = createAuditedSupabaseAdminClient(actor.user.id);
+
   const { data: authUserResult, error: authUserError } =
     await supabaseAdmin.auth.admin.getUserById(userId);
 
@@ -817,7 +831,7 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
      * modificado anteriormente.
      */
     if (profileApplied) {
-      const { error: profileRollbackError } = await supabaseAdmin
+      const { error: profileRollbackError } = await auditedSupabaseAdmin
         .from("profiles")
         .update({
           nome_completo: originalProfile.nome_completo,
@@ -854,7 +868,7 @@ async function updateManagedUser(request: Request, userId: string): Promise<Resp
    * --------------------------------------------------------------
    */
   if (profileNeedsUpdate) {
-    const { data: updatedProfile, error: profileError } = await supabaseAdmin
+    const { data: updatedProfile, error: profileError } = await auditedSupabaseAdmin
       .from("profiles")
       .update(profileUpdate)
       .eq("id", userId)
