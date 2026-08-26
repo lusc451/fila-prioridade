@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ArchiveUserDialog } from "@/components/admin/archive-user-dialog";
 import { CreateUserDialog } from "@/components/admin/create-user-dialog";
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { ResetPasswordDialog } from "@/components/admin/reset-password-dialog";
@@ -160,7 +161,8 @@ function UsersPage() {
    * Atualmente isso inclui:
    *
    * - editar;
-   * - redefinir senha.
+   * - redefinir senha;
+   * - arquivar.
    */
   const canManageExistingUsers = actorRole === "developer";
 
@@ -527,6 +529,21 @@ function UsersPage() {
                               }}
                               accessToken={session?.access_token ?? null}
                               onReset={reloadUsers}
+                            />
+
+                            <ArchiveUserDialog
+                              user={{
+                                id: managedUser.id,
+
+                                nomeCompleto: managedUser.nomeCompleto,
+
+                                username: managedUser.username,
+
+                                email: managedUser.email,
+                              }}
+                              currentUserId={currentUser?.id ?? null}
+                              accessToken={session?.access_token ?? null}
+                              onArchived={reloadUsers}
                             />
                           </div>
                         </TableCell>
