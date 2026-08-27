@@ -293,6 +293,21 @@ async function resetManagedUserPassword(request: Request, userId: string): Promi
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  const { createAuditedSupabaseAdminClient } =
+    await import("@/lib/server/audited-supabase-admin.server");
+
+  /**
+   * Cliente exclusivo desta redefinicao administrativa de senha.
+   *
+   * actor.user.id ja foi validado por
+   * authenticateManagementActor().
+   *
+   * Nenhuma senha e transportada para o mecanismo de auditoria.
+   * O contexto registra somente quem alterou o estado administrativo
+   * do profile.
+   */
+  const auditedSupabaseAdmin = createAuditedSupabaseAdminClient(actor.user.id);
+
   /**
    * --------------------------------------------------------------
    * 4. CONFIRMAR USUÁRIO AUTH
@@ -402,7 +417,7 @@ async function resetManagedUserPassword(request: Request, userId: string): Promi
    * de Auth falhe.
    */
   if (originalMustChangePassword !== true) {
-    const { data: updatedProfile, error: mandatoryChangeError } = await supabaseAdmin
+    const { data: updatedProfile, error: mandatoryChangeError } = await auditedSupabaseAdmin
       .from("profiles")
       .update({
         must_change_password: true,
@@ -460,7 +475,7 @@ async function resetManagedUserPassword(request: Request, userId: string): Promi
      * Caso ela já fosse true antes, não devemos modificá-la.
      */
     if (passwordFlagChanged) {
-      const { error: flagRollbackError } = await supabaseAdmin
+      const { error: flagRollbackError } = await auditedSupabaseAdmin
         .from("profiles")
         .update({
           must_change_password: originalMustChangePassword,
