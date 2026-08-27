@@ -1115,6 +1115,20 @@ async function archiveManagedUser(request: Request, userId: string): Promise<Res
    */
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+  const { createAuditedSupabaseAdminClient } =
+    await import("@/lib/server/audited-supabase-admin.server");
+
+  /**
+   * Cliente exclusivo desta operacao de arquivamento.
+   *
+   * actor.user.id ja foi validado por
+   * authenticateManagementActor().
+   *
+   * O banco validara novamente o UUID antes de utiliza-lo
+   * como autor no audit_log.
+   */
+  const auditedSupabaseAdmin = createAuditedSupabaseAdminClient(actor.user.id);
+
   const { data: authUserResult, error: authUserError } =
     await supabaseAdmin.auth.admin.getUserById(userId);
 
@@ -1255,7 +1269,7 @@ async function archiveManagedUser(request: Request, userId: string): Promise<Res
    */
   const archivedAt = new Date().toISOString();
 
-  const { data: archivedProfile, error: archiveError } = await supabaseAdmin
+  const { data: archivedProfile, error: archiveError } = await auditedSupabaseAdmin
     .from("profiles")
     .update({
       ativo: false,
