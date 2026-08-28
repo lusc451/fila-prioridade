@@ -617,8 +617,32 @@ async function completePasswordChange(
    * confirmou a alteração da senha.
    */
 
+  /**
+   * Cliente service-role exclusivo desta operacao self-service.
+   *
+   * O UUID utilizado aqui NAO vem do body nem de qualquer outro
+   * dado controlado pelo navegador.
+   *
+   * user.id foi obtido anteriormente atraves de auth.getUser()
+   * utilizando o JWT validado desta propria requisicao.
+   *
+   * O header x-audit-self-user-id sera validado novamente pelo
+   * PostgreSQL em resolve_audit_actor().
+   */
+  const {
+    createSelfServiceAuditedSupabaseAdminClient,
+  } =
+    await import(
+      "@/lib/server/self-service-audited-supabase-admin.server"
+    );
+
+  const selfServiceAuditedSupabaseAdmin =
+    createSelfServiceAuditedSupabaseAdminClient(
+      user.id,
+    );
+
   const { error: flagError } =
-    await supabaseAdmin
+    await selfServiceAuditedSupabaseAdmin
       .from("profiles")
       .update({
         must_change_password: false,
