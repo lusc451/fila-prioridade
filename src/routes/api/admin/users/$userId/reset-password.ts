@@ -279,6 +279,24 @@ async function resetManagedUserPassword(request: Request, userId: string): Promi
   }
 
   /**
+   * A redefinicao administrativa de senha existe para contas
+   * gerenciadas pelo Developer, e nao para a propria conta.
+   *
+   * O Developer autenticado deve utilizar o fluxo apropriado
+   * de alteracao da propria credencial.
+   */
+  if (actor.user.id === userId) {
+    return jsonResponse(
+      {
+        success: false,
+        error:
+          "Voce nao pode redefinir sua propria senha por meio da administracao.",
+      },
+      409,
+    );
+  }
+
+  /**
    * --------------------------------------------------------------
    * 3. BODY
    * --------------------------------------------------------------
