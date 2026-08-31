@@ -452,6 +452,7 @@ async function hasAnotherActiveDeveloper(excludedUserId: string): Promise<
     .in("id", ids)
     .eq("ativo", true)
     .is("deleted_at", null)
+    .eq("must_change_password", false)
     .limit(1);
 
   if (profileError) {
