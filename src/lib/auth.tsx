@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -122,6 +123,18 @@ export function AuthProvider({
     useState<string | null>(null);
 
   /**
+   * Identidade funcional atualmente associada ao contexto.
+   *
+   * Supabase Auth pode emitir eventos como TOKEN_REFRESHED sem que
+   * o usuario autenticado tenha mudado.
+   *
+   * Nesses casos nao devemos apagar profile/role, pois o efeito de
+   * carregamento depende de session.user.id e esse UUID permanece igual.
+   */
+  const sessionUserIdRef =
+    useRef<string | null>(null);
+
+  /**
    * Inicializa e acompanha a sessão do Supabase Auth.
    *
    * Não executamos consultas assíncronas dentro do callback de
@@ -138,23 +151,42 @@ export function AuthProvider({
         return;
       }
 
+      const nextUserId =
+        nextSession?.user.id ?? null;
+
+      const userChanged =
+        sessionUserIdRef.current !==
+        nextUserId;
+
+      sessionUserIdRef.current =
+        nextUserId;
+
+      /**
+       * A Session sempre deve acompanhar o estado mais recente do Auth,
+       * inclusive em TOKEN_REFRESHED.
+       */
       setSession(nextSession);
 
       /**
-       * Sempre limpamos os dados funcionais quando a sessão muda.
+       * Profile, role e demais dados funcionais somente devem ser
+       * descartados quando a identidade autenticada realmente mudou.
        *
-       * Isso impede que informações do usuário anterior permaneçam
-       * temporariamente disponíveis durante login/logout/troca de
-       * sessão.
+       * Em uma simples renovacao do token, session.user.id permanece
+       * igual e o efeito de carregamento da conta nao seria executado
+       * novamente.
        */
+      if (!userChanged) {
+        return;
+      }
+
       setProfile(null);
       setRole(null);
       setIsActive(null);
       setAccountError(null);
 
       /**
-       * Se existe usuário autenticado, haverá uma segunda etapa de
-       * carregamento para profile e role.
+       * Se existe um novo usuario autenticado, havera uma segunda
+       * etapa de carregamento para profile e role.
        */
       setAccountLoading(
         Boolean(nextSession?.user),
