@@ -123,6 +123,17 @@ export function AuthProvider({
     useState<string | null>(null);
 
   /**
+   * Contador interno usado somente para solicitar uma nova leitura do
+   * estado funcional da mesma conta.
+   *
+   * Ele nao representa dado de dominio e nao e exposto pelo contexto.
+   */
+  const [
+    accountRefreshVersion,
+    setAccountRefreshVersion,
+  ] = useState(0);
+
+  /**
    * Identidade funcional atualmente associada ao contexto.
    *
    * Supabase Auth pode emitir eventos como TOKEN_REFRESHED sem que
@@ -133,6 +144,19 @@ export function AuthProvider({
    */
   const sessionUserIdRef =
     useRef<string | null>(null);
+
+  /**
+   * Momento do ultimo pedido de revalidacao funcional.
+   *
+   * focus e visibilitychange podem ocorrer praticamente juntos quando
+   * o usuario retorna para a aplicacao.
+   *
+   * Mantemos uma pequena janela de coalescencia para evitar duas leituras
+   * consecutivas do mesmo estado sem reduzir a frequencia normal de
+   * verificacao da conta.
+   */
+  const lastAccountRefreshRequestAtRef =
+    useRef(0);
 
   /**
    * Inicializa e acompanha a sessão do Supabase Auth.
@@ -257,8 +281,13 @@ export function AuthProvider({
     let cancelled = false;
 
     async function loadAccount() {
-      setAccountLoading(true);
-      setAccountError(null);
+      /**
+       * accountLoading e controlado por applySession() durante uma troca
+       * real de identidade.
+       *
+       * Revalidacoes da mesma conta acontecem em background para evitar
+       * substituir a interface inteira pela tela de carregamento.
+       */
 
       /**
        * A migration de endurecimento da RLS disponibilizou esta
@@ -301,6 +330,7 @@ export function AuthProvider({
         setProfile(null);
         setRole(null);
         setIsActive(false);
+        setAccountError(null);
         setAccountLoading(false);
 
         return;
@@ -426,6 +456,121 @@ export function AuthProvider({
 
     return () => {
       cancelled = true;
+    };
+  }, [session?.user.id, accountRefreshVersion]);
+
+  /**
+   * Revalida periodicamente o estado funcional enquanto a mesma sessao
+   * permanece aberta.
+   *
+   * Isso cobre alteracoes administrativas remotas em:
+   *
+   * - ativo;
+   * - deleted_at;
+   * - must_change_password;
+   * - role.
+   *
+   * A seguranca efetiva nao depende deste intervalo: as policies RLS
+   * consultam o estado atual do banco a cada operacao.
+   *
+   * Esta rotina existe para manter a interface sincronizada sem exigir
+   * refresh manual ou expiracao do JWT.
+   */
+  useEffect(() => {
+    const userId =
+      session?.user.id;
+
+    if (!userId) {
+      return;
+    }
+
+    function requestAccountRefresh() {
+      const now =
+        Date.now();
+
+      const elapsedSinceLastRequest =
+        now -
+        lastAccountRefreshRequestAtRef.current;
+
+      /**
+       * Ao retornar para uma aba, o navegador pode emitir focus e
+       * visibilitychange praticamente no mesmo instante.
+       *
+       * Consideramos ambos parte do mesmo evento logico.
+       */
+      if (
+        elapsedSinceLastRequest <
+        1_000
+      ) {
+        return;
+      }
+
+      lastAccountRefreshRequestAtRef.current =
+        now;
+
+      setAccountRefreshVersion(
+        (currentVersion) =>
+          currentVersion + 1,
+      );
+    }
+
+    function handleWindowFocus() {
+      requestAccountRefresh();
+    }
+
+    function handleVisibilityChange() {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        requestAccountRefresh();
+      }
+    }
+
+    /**
+     * Quando a aba fica em background, evitamos consultas periodicas
+     * desnecessarias.
+     *
+     * Ao voltar para a aba, visibilitychange executa uma revalidacao
+     * imediatamente.
+     */
+    const intervalId =
+      window.setInterval(
+        () => {
+          if (
+            document.visibilityState ===
+            "visible"
+          ) {
+            requestAccountRefresh();
+          }
+        },
+        60_000,
+      );
+
+    window.addEventListener(
+      "focus",
+      handleWindowFocus,
+    );
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange,
+    );
+
+    return () => {
+      window.clearInterval(
+        intervalId,
+      );
+
+      window.removeEventListener(
+        "focus",
+        handleWindowFocus,
+      );
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
     };
   }, [session?.user.id]);
 
